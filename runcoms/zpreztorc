@@ -49,6 +49,8 @@ zstyle ':prezto:load' pmodule \
 # Autosuggestions
 #
 
+zstyle :prezto:module:prompt theme powerlevel10k
+
 # Set the query found color.
 # zstyle ':prezto:module:autosuggestions:color' found ''
 
