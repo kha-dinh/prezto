@@ -46,7 +46,6 @@ See the docstrings of `defalias' and `make-obsolete' for more details."
   :config
   (zoom-mode)
   (setq zoom-size '(0.618 . 0.8))
-
   )
 ;; Dashboard
 (use-package dashboard
@@ -57,7 +56,7 @@ See the docstrings of `defalias' and `make-obsolete' for more details."
 (use-package dimmer
   :config
   ;;  (dimmer-mode +1)
-  (dimmer-configure-helm)
+  ;; (dimmer-configure-helm)
   (dimmer-configure-which-key)
   ;; (dimmer-fraction 0.6)
   )
@@ -87,9 +86,7 @@ See the docstrings of `defalias' and `make-obsolete' for more details."
   (add-hook 'after-init-hook (lambda () (load-theme 'material t)))
   )
 
-
-
-
+(setq vc-follow-symlinks t)
 
 ;;;;;;;;;;;;;;;;;;;;;;;
 ;; PROGRAMMING
@@ -114,13 +111,13 @@ See the docstrings of `defalias' and `make-obsolete' for more details."
 (electric-pair-mode)
 
 ;; Redo
-(add-to-list 'load-path "~/.emacs.d/redo+")
+(add-to-list 'load-path "~/.zprezto/emacs-pkgs/redo+")
 (require 'redo+)
 (define-key global-map (kbd "C-/") 'undo)
 (define-key global-map (kbd "C-x C-/") 'redo)
 
 ;; linker scrip mode
-(add-to-list 'load-path "~/.emacs.d/ld-mode")
+(add-to-list 'load-path "~/.zprezto/emacs-pkgs/ld-mode")
 (require 'ld-mode)
 (ld-mode)
 
@@ -137,7 +134,7 @@ See the docstrings of `defalias' and `make-obsolete' for more details."
   (add-hook 'c-mode-hook 'include-paths)
   )
 ;; Configs from tuhdo
-(add-to-list 'load-path "~/.emacs.d/custom")
+(add-to-list 'load-path "~/.zprezto/emacs-pkgs/custom")
 (require 'setup-general)
 ;;    (require 'setup-helm)
 ;; (require 'setup-cedet)
@@ -214,61 +211,6 @@ See the docstrings of `defalias' and `make-obsolete' for more details."
     :init
     (counsel-mode 1)
     )
-  ;; (use-package counsel-etags
-  ;;   :ensure t
-  ;;   :bind (("M-." . counsel-etags-find-tag-at-point)
-  ;;          ("M-t" . counsel-etags-grep-symbol-at-point))
-  ;;   :config
-  ;;   (add-hook 'prog-mode-hook
-  ;;             (lambda ()
-  ;;               (add-hook 'after-save-hook
-  ;;                         'counsel-etags-virtual-update-tags 'append 'local)))
-  ;;   :config
-  ;;   (setq counsel-etags-update-interval 60)
-  ;;   (push "build" counsel-etags-ignore-directories)
-  ;;   (defun my-scan-dir (src-dir &optional force)
-  ;;     "Create tags file from SRC-DIR. \
-  ;;    If FORCE is t, the commmand is executed without \
-  ;;    checking the timer."
-  ;;     (let* ((find-pg (or
-  ;;                      counsel-etags-find-program
-  ;;                      (counsel-etags-guess-program "find")))
-  ;;            (ctags-pg (or
-  ;;                       counsel-etags-tags-program
-  ;;                       (format "%s -e -L" (counsel-etags-guess-program
-  ;;                                           "ctags"))))
-  ;;            (default-directory src-dir)
-  ;;            ;; run find&ctags to create TAGS
-  ;;            (cmd (format
-  ;;                  "%s . \\( %s \\) -prune -o -type f -not -size +%sk %s | %s -"
-  ;;                  find-pg
-  ;;                  (mapconcat
-  ;;                   (lambda (p)
-  ;;                     (format "-iwholename \"*%s*\"" p))
-  ;;                   counsel-etags-ignore-directories " -or ")
-  ;;                  counsel-etags-max-file-size
-  ;;                  (mapconcat (lambda (n)
-  ;;                               (format "-not -name \"%s\"" n))
-  ;;                             counsel-etags-ignore-filenames " ")
-  ;;                  ctags-pg))
-  ;;            (tags-file (concat (file-name-as-directory src-dir) "TAGS"))
-  ;;            (doit (or force (not (file-exists-p tags-file)))))
-  ;;       ;; always update cli options
-  ;;       (when doit
-  ;;         (message "%s at %s" cmd default-directory)
-  ;;         (async-shell-command cmd)
-  ;;         (visit-tags-table tags-file t))))
-
-  ;; (setq counsel-etags-update-tags-backend
-  ;;       (lambda ()
-  ;;         (interactive)
-  ;;         (let* ((tags-file (counsel-etags-locate-tags-file)))
-  ;;           (when tags-file
-  ;;             (my-scan-dir (file-name-directory tags-file) t)
-  ;;             (run-hook-with-args
-  ;;              'counsel-etags-after-update-tags-hook tags-file)
-  ;;             (unless counsel-etags-quiet-when-updating-tags
-  ;; (message "%s is updated!" tags-file))))))
 
 
   (use-package flyspell-correct-ivy
@@ -373,7 +315,51 @@ See the docstrings of `defalias' and `make-obsolete' for more details."
 
   )
 
+(use-package company-box
+  :after (company ivy-posframe)
+  :hook (company-mode-hook . company-box-mode)
+  :init
+  (setq company-box-doc-delay 0)
+  (setq company-box-max-candidates 1000)
+  (setq company-box-show-single-candidate t)
+  (setq company-tooltip-align-annotations t)
 
+  (setq company-box-doc-frame-parameters
+        `((internal-border-width . ,ivy-posframe-border-width)))
+
+  (defun mpereira/company-box-doc-sync-frame-with-current-theme ()
+    "TODO: docstring."
+    (interactive)
+    (setq company-box-doc-frame-parameters
+          `((background-color . ,(face-attribute 'ivy-posframe :background nil t))
+            (foreground-color . ,(face-attribute 'ivy-posframe :foreground nil t))
+            (internal-border-width . ,ivy-posframe-border-width)
+            (internal-border-color . ,(face-attribute 'ivy-posframe-border
+                                                      :background
+                                                      nil
+                                                      t)))))
+
+  (defun mpereira/company-box-update-frames-and-parameters ()
+    "TODO: docstring."
+    (interactive)
+    (mpereira/company-box-doc-sync-frame-with-current-theme)
+    (company-box--set-frame (company-box--make-frame (company-box--get-buffer)))
+    (frame-local-setq company-box-doc-frame
+                      (company-box-doc--make-frame (company-box--get-buffer
+                                                    "doc"))))
+
+  ;; FIXME: this is causing the company-box frame to have a small,
+  ;; non-expandable width.
+  ;; (add-hook 'after-init-hook
+  ;;           (lambda (&optional _)
+  ;;             ;; This needs to run after the hook that sets the initial theme.
+  ;;             (mpereira/company-box-doc-sync-frame-with-current-theme)
+  ;;             ;; Adding this hook only after Emacs startup so that the initial
+  ;;             ;; theme setting doesn't trigger it. It was causing the
+  ;;             ;; company-box frame width to be truncated, for some reason.
+  ;;             (add-hook 'after-load-theme-hook 'mpereira/company-box-update-frames-and-parameters))
+  ;;           'append)
+  )
 ;; Folding code
 (use-package hideshow
   :init
@@ -410,7 +396,7 @@ See the docstrings of `defalias' and `make-obsolete' for more details."
 (defun my-org-mode-hook ()
   (add-hook 'completion-at-point-functions 'pcomplete-completions-at-point nil t))
 (add-hook 'org-mode-hook #'my-org-mode-hook)
-(use-package helm-ag)
+;; (use-package helm-ag)
 (use-package markdown-mode
   :ensure t
   :commands (markdown-mode gfm-mode)
@@ -434,9 +420,13 @@ See the docstrings of `defalias' and `make-obsolete' for more details."
   (add-hook 'LaTeX-mode-hook 'flyspell-mode)
   (add-hook 'LaTeX-mode-hook 'LaTeX-math-mode)
   (add-hook 'LaTeX-mode-hook 'turn-on-reftex)
-  (setq reftex-plug-into-AUCTeX t)
+  (add-hook 'LaTeX-mode-hook 'TeX-PDF-mode)
+  (setq TeX-view-program-selection '((output-pdf "PDF Tools"))
+        TeX-source-correlate-start-server t
+        TeX-source-correlate-method 'synctex
+        )
 
-  (setq TeX-PDF-mode t)
+  (setq reftex-plug-into-AUCTeX t)
 
   (defun guess-TeX-master (filename)
     "Guess the master file for FILENAME from currently open .tex files."
@@ -460,17 +450,15 @@ See the docstrings of `defalias' and `make-obsolete' for more details."
   (add-hook 'LaTeX-mode-hook
             '(lambda ()
                (setq TeX-master (guess-TeX-master (buffer-file-name)))))
+  ;; revert pdf-view after compilation
+  (add-hook 'TeX-after-compilation-finished-functions #'TeX-revert-document-buffer) ;
 
 
   (use-package pdf-tools
     :init
-    (setq TeX-view-program-selection '((output-pdf "PDF Tools"))
-          TeX-source-correlate-start-server t
-          )
-    ;; revert pdf-view after compilation
-    (add-hook 'TeX-after-compilation-finished-functions #'TeX-revert-document-buffer)
-    )
+    (pdf-tools-install)
 
+    )
   )
 
 
@@ -481,21 +469,20 @@ See the docstrings of `defalias' and `make-obsolete' for more details."
   :init
   (sublimity-mode 1))
 
-
-(setq  helm-display-function 'helm-display-buffer-in-own-frame
-       ;; helm-display-function 'my-helm-display-child-frame
-       helm-display-buffer-reuse-frame t
-       helm-display-buffer-width 100)
+;; (setq  helm-display-function 'helm-display-buffer-in-own-frame
+;;        ;; helm-display-function 'my-helm-display-child-frame
+;;        helm-display-buffer-reuse-frame t
+;;        helm-display-buffer-width 100)
 
 (defun reload-configs ()
   ;; Reload the config file
   (interactive)
-  (load-file "~/.emacs.d/init.el")
+  (load-file "~/.emacs")
   )
 (defun open-config-file ()
   "Open this file"
   (interactive)
-  (find-file "~/.emacs.d/settings.org")
+  (find-file "~/.emacs")
   (org-mode)
 
   )
@@ -558,14 +545,6 @@ See the docstrings of `defalias' and `make-obsolete' for more details."
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(TeX-view-program-selection
-   '(((output-dvi has-no-display-manager)
-      "dvi2tty")
-     ((output-dvi style-pstricks)
-      "dvips and gv")
-     (output-dvi "xdvi")
-     (output-pdf "Okular")
-     (output-html "xdg-open")))
  '(ansi-color-faces-vector
    [default bold shadow italic underline bold bold-italic bold])
  '(ansi-color-names-vector
@@ -596,6 +575,7 @@ See the docstrings of `defalias' and `make-obsolete' for more details."
  '(nyan-mode t)
  '(package-selected-packages
    '(counsel-etags pdf-tools auctex semantics company-irony elpy ace-window avy ace-jump-mode jedi auto-complete jupyter vterm cmake-mode helm-ag zone-nyan nyan-mode org-beautify-theme company-c-headers redo+ centaur-tabs selectrum helm-smex smex function-args aggressive-indent immaterial-theme atom-dark-theme badger-theme gruvbox-theme nimbus-theme docker-compose-mode dashboard vimish-fold dimmer neotree zoom spacemacs-theme smart-mode-line-atom-one-dark-theme atom-one-dark-theme material-theme flycheck dracula-theme zygospore yasnippet ws-butler volatile-highlights use-package undo-tree iedit dtrt-indent counsel-projectile company clean-aindent-mode anzu))
+ '(pdf-view-continuous t)
  '(pdf-view-midnight-colors '("#b2b2b2" . "#262626"))
  '(projectile-mode t nil (projectile))
  '(safe-local-variable-values
