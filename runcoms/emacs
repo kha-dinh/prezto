@@ -35,6 +35,8 @@ See the docstrings of `defalias' and `make-obsolete' for more details."
 (setq use-package-always-ensure t)
 (setq make-backup-files nil)
 
+(use-package magit ; TODO key bindings and such
+  :ensure t)
 
 ;; Directory tree
 (use-package neotree
@@ -574,7 +576,7 @@ See the docstrings of `defalias' and `make-obsolete' for more details."
      ("\\?\\?\\?+" . "#dc752f")))
  '(nyan-mode t)
  '(package-selected-packages
-   '(counsel-etags pdf-tools auctex semantics company-irony elpy ace-window avy ace-jump-mode jedi auto-complete jupyter vterm cmake-mode helm-ag zone-nyan nyan-mode org-beautify-theme company-c-headers redo+ centaur-tabs selectrum helm-smex smex function-args aggressive-indent immaterial-theme atom-dark-theme badger-theme gruvbox-theme nimbus-theme docker-compose-mode dashboard vimish-fold dimmer neotree zoom spacemacs-theme smart-mode-line-atom-one-dark-theme atom-one-dark-theme material-theme flycheck dracula-theme zygospore yasnippet ws-butler volatile-highlights use-package undo-tree iedit dtrt-indent counsel-projectile company clean-aindent-mode anzu))
+   '(magit counsel-etags pdf-tools auctex semantics company-irony elpy ace-window avy ace-jump-mode jedi auto-complete jupyter vterm cmake-mode helm-ag zone-nyan nyan-mode org-beautify-theme company-c-headers redo+ centaur-tabs selectrum helm-smex smex function-args aggressive-indent immaterial-theme atom-dark-theme badger-theme gruvbox-theme nimbus-theme docker-compose-mode dashboard vimish-fold dimmer neotree zoom spacemacs-theme smart-mode-line-atom-one-dark-theme atom-one-dark-theme material-theme flycheck dracula-theme zygospore yasnippet ws-butler volatile-highlights use-package undo-tree iedit dtrt-indent counsel-projectile company clean-aindent-mode anzu))
  '(pdf-view-continuous t)
  '(pdf-view-midnight-colors '("#b2b2b2" . "#262626"))
  '(projectile-mode t nil (projectile))
