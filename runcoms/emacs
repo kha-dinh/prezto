@@ -35,6 +35,7 @@ See the docstrings of `defalias' and `make-obsolete' for more details."
   (load bootstrap-file nil 'nomessage))
 ;; Key bindings
 (global-set-key (kbd "C-x k") 'kill-buffer-and-window)
+(straight-use-package 'use-package)
 ;; Redo
 (use-package redo+
   :load-path "~/.zprezto/emacs-pkgs/redo+"

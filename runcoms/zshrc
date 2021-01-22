@@ -33,7 +33,9 @@ antigen apply
 # Customize to your needs...
 bindkey '^[[A' history-substring-search-up
 bindkey '^[[B' history-substring-search-down
-. /usr/share/autojump/autojump.sh
+if [[ -s "/usr/share/autojump/autojump.sh" ]]; then
+    . "${ZDOTDIR:-$HOME}/.zprezto/init.zsh"
+fi
 
 if [[ $- == *i* ]] && [[ -z "$TMUX" ]] && [[ -n "$SSH_CONNECTION" ]]; then
     # tmux attach-session -t ssh_tmux || tmux new-session -s ssh_tmux -d && tmux attach-session -t ssh_tmux
