@@ -46,6 +46,9 @@
 ;; Package: undo-tree
 ;; GROUP: Editing -> Undo -> Undo Tree
 (use-package undo-tree
+  :bind
+  (("C-/" . 'undo-tree-undo))
+  (("C-x C-/" . 'undo-tree-redo))
   :init
   (global-undo-tree-mode 1))
 
@@ -56,6 +59,7 @@
 (use-package yasnippet
   :defer t
   :init
+  (use-package yassnippet-snippets)
   (add-hook 'prog-mode-hook 'yas-minor-mode))
 
 ;; Package: clean-aindent-mode
