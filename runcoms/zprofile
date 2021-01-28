@@ -58,7 +58,9 @@ export LESS='-g -i -M -R -S -w -z-4'
 export XAUTHORITY=~/.Xauthority
 WINDOWS=/mnt/c/Windows
 if [ -d "$WINDOWS" ] ; then
-    export DISPLAY=$(cat /etc/resolv.conf | grep nameserver | awk '{print $2; exit;}'):0.0
+    # export DISPLAY=$(cat /etc/resolv.conf | grep nameserver | awk '{print $2; exit;}'):0.0
+    # MobaXterm
+    export DISPLAY=192.168.0.198:0.0 
 fi
 
 # Set the Less input preprocessor.
