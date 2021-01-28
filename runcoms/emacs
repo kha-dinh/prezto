@@ -308,24 +308,39 @@ See the docstrings of `defalias' and `make-obsolete' for more details."
       :init
       (add-to-list 'company-backends 'company-irony-c-headers)
       ))
+  ;; (use-package company-yasnippet)
   (add-hook 'after-init-hook 'global-company-mode)
   :config
   (setq frame-set-background-mode t)
   (setq x-gtk-use-system-tooltips nil)
   (setq tooltip-frame-parameters 1)
 
-
   (setq company-backends (delete 'company-semantic company-backends))
   (setq company-idle-delay 0.8)
   (add-to-list
    'company-backends '(company-irony
-                       company-yasnippet
+                       ;; company-yasnippet
                        company-clang
                        company-rtags
                        company-files
                        company-keywords
                        company-capf))
   (setq company-abbrev 'company-dabbrev)
+
+  (defun company-backend-with-yas (backends)
+    "Add :with company-yasnippet to company BACKENDS.
+Taken from https://github.com/syl20bnr/spacemacs/pull/179."
+    (if (and (listp backends) (memq 'company-yasnippet backends))
+        backends
+      (append (if (consp backends)
+                  backends
+                (list backends))
+              '(:with company-yasnippet))))
+
+  ;; add yasnippet to all backends
+  (setq company-backends
+        (mapcar 'company-backend-with-yas company-backends))
+
   )
 (use-package company-posframe
   :hook (company-mode . company-posframe-mode))
@@ -335,7 +350,7 @@ See the docstrings of `defalias' and `make-obsolete' for more details."
   :config
   (setq company-box-icons-alist 'company-box-icons-images)
 
-  (setq company-box-doc-delay 0)
+  (setq company-box-doc-delay 0.8)
   (setq company-box-max-candidates 1000)
   (setq company-box-show-single-candidate t)
   (setq company-tooltip-align-annotations t)

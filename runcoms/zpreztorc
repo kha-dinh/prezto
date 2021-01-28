@@ -43,7 +43,8 @@ zstyle ':prezto:load' pmodule \
   'emacs' \
   'history-substring-search' \
   'syntax-highlighting' \
-  'command-not-found' 
+  'command-not-found' \
+  'zsh-z'
 
 #
 # Autosuggestions
