@@ -33,20 +33,108 @@ See the docstrings of `defalias' and `make-obsolete' for more details."
       (goto-char (point-max))
       (eval-print-last-sexp)))
   (load bootstrap-file nil 'nomessage))
+(straight-use-package 'use-package)
 ;; Key bindings
 (global-set-key (kbd "C-x k") 'kill-current-buffer)
 (global-set-key (kbd "C-x C-k") 'kill-buffer-and-window)
-(straight-use-package 'use-package)
-
 (global-set-key (kbd "C-x C-r") 'eval-region)
+(global-set-key (kbd "M-<up>") 'beginning-of-defun)
+(global-set-key (kbd "M-p") 'beginning-of-defun)
+(global-set-key (kbd "M-<down>") 'end-of-defun)
+(global-set-key (kbd "M-n") 'end-of-defun)
 
-;; Magit
+(use-package hydra)
+(setq remote-file-name-inhibit-cache nil)
+(setq vc-ignore-dir-regexp
+      (format "%s\\|%s"
+              vc-ignore-dir-regexp
+              tramp-file-name-regexp))
+(setq tramp-verbose 1)
+(global-set-key
+ (kbd "C-n")
+ (defhydra hydra-move
+   (:body-pre (next-line))
+   "move"
+   ("n" next-line)
+   ("p" previous-line)
+   ("f" forward-char)
+   ("b" backward-char)
+   ("a" beginning-of-line)
+   ("e" move-end-of-line)
+   ("M-p" beginning-of-defun)
+   ("M-n" end-of-defun)
+   ("v" scroll-up-command)
+   ;; Converting M-v to V here by analogy.
+   ("V" scroll-down-command)
+   ("l" recenter-top-bottom)
+   ("o" nil nil)))
+
+(defhydra hydra-rectangle (:body-pre (rectangle-mark-mode 1)
+                                     :color pink
+                                     :post (deactivate-mark))
+  "
+  ^_k_^     _d_elete    _s_tring
+_h_   _l_   _o_k        _y_ank
+  ^_j_^     _n_ew-copy  _r_eset
+^^^^        _e_xchange  _u_ndo
+^^^^        ^ ^         _p_aste
+"
+  ("h" backward-char nil)
+  ("l" forward-char nil)
+  ("k" previous-line nil)
+  ("j" next-line nil)
+  ("e" exchange-point-and-mark nil)
+  ("n" copy-rectangle-as-kill nil)
+  ("d" delete-rectangle nil)
+  ("r" (if (region-active-p)
+           (deactivate-mark)
+         (rectangle-mark-mode 1)) nil)
+  ("y" yank-rectangle nil)
+  ("u" undo nil)
+  ("s" string-rectangle nil)
+  ("p" kill-rectangle nil)
+  ("o" nil nil))
+
+(global-set-key (kbd "C-x SPC") 'hydra-rectangle/body)
+;; Magitk
 (use-package magit)
 ;; Directory tree
-(use-package neotree
+(use-package treemacs
+  :bind
+  (:map global-map
+        ("M-0"       . treemacs-select-window)
+        ("C-x t 1"   . treemacs-delete-other-windows)
+        ("C-x t t"   . treemacs)
+        ("C-x t B"   . treemacs-bookmark)
+        ("C-x t f" . treemacs-find-file)
+        ("C-x t ." . treemacs-find-tag)
+        ("C-x t p"   . treemacs-projectile)
+        )
   :config
-  (global-set-key [f8] 'neotree-toggle)
+  ;; (global-set-key [f8] 'neotree-toggle)
+  ;; (treemacs-resize-icons 22)
+
+  (treemacs-follow-mode t)
+  (treemacs-filewatch-mode t)
+  (treemacs-fringe-indicator-mode 'always)
+  (pcase (cons (not (null (executable-find "git")))
+               (not (null treemacs-python-executable)))
+    (`(t . t)
+     (treemacs-git-mode 'deferred))
+    (`(t . _)
+     (treemacs-git-mode 'simple))))
+
+(use-package treemacs-projectile
+  :after treemacs projectile
   )
+(use-package treemacs-icons-dired
+  :after treemacs dired
+  :config (treemacs-icons-dired-mode))
+
+(use-package treemacs-magit
+  :after treemacs magit
+  )
+
 ;; Auto resize windows
 (use-package zoom
   :config
@@ -56,7 +144,8 @@ See the docstrings of `defalias' and `make-obsolete' for more details."
 ;; Dashboard
 (use-package dashboard
   :config
-  (dashboard-setup-startup-hook)
+  (
+   dashboard-setup-startup-hook)
   )
 ;; Dim other panels when not used
 (use-package dimmer
@@ -93,35 +182,37 @@ See the docstrings of `defalias' and `make-obsolete' for more details."
   :straight (material-theme :type git :host github :repo "cpaulik/emacs-material-theme"
                             :fork (:host github
                                          :repo "kha-dinh/emacs-material-theme"))
-  :config
-  (add-hook 'after-init-hook (lambda () (load-theme 'material t)))
+  :hook
+  (after-init . (lambda () (load-theme 'material t)))
   )
 
-(setq vc-follow-symlinks t)
 
 ;;;;;;;;;;;;;;;;;;;;;;;
 ;; PROGRAMMING
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 (use-package jedi
-  :init
-  (add-hook 'python-mode-hook 'jedi:setup)
-  (setq jedi:complete-on-dot t)
-  (setq jedi:get-in-function-call-delay 5000)
-  (setq jedi:tooltip-medthod nil)
+  :custom
+  (jedi:complete-on-dot t)
+  (jedi:get-in-function-call-delay 5000)
+  (jedi:tooltip-medthod nil)
+  :hook
+  (python-mode . jedi:setup)
   :config
   (jedi:install-server))
+
 (use-package elpy
   :config
   (elpy-enable)
   (setq elpy-rpc-backend "jedi")
   )
+;; Auto follow symlink without asking
+(setq vc-follow-symlinks t)
 (setq c-default-style "linux")
 (setq c-basic-offset 2)
+
 ;;    Auto close brackets
 (electric-pair-mode)
-
-
 
 ;; linker scrip mode
 (use-package ld-mode
@@ -129,22 +220,37 @@ See the docstrings of `defalias' and `make-obsolete' for more details."
   :config
   (ld-mode)
   )
-
 (use-package flycheck
   :init
-  (add-hook 'c++-mode-hook
-            (lambda () (setq flycheck-clang-language-standard "c++11")))
   (global-flycheck-mode)
   (defun include-paths ()
     ;; Add include dir to path
     (setq flycheck-clang-include-path (list (expand-file-name "../include"))))
-
-  (add-hook 'c++-mode-hook 'include-paths)
-  (add-hook 'c-mode-hook 'include-paths)
+  :hook ((c++-mode . include-paths)
+         (c-mode . include-paths)
+         (c++-mode . (lambda () (setq flycheck-clang-language-standard "c++11")))
+         )
   )
-;; Configs from tuhdo
-;; (add-to-list 'load-path "~/.zprezto/emacs-pkgs/custom")
-;; (require 'setup-general)
+(use-package flycheck-color-mode-line
+  :after flycheck
+  :init
+  (add-hook 'flycheck-mode-hook 'flycheck-color-mode-line-mode))
+(use-package flycheck-pos-tip
+  :after flycheck
+  :custom
+  (flycheck-pos-tip-timeout nil)
+  :init
+  (flycheck-pos-tip-mode))
+(use-package flycheck-irony
+  :after flycheck
+  :init
+  (add-hook 'flycheck-mode-hook #'flycheck-irony-setup))
+(use-package flycheck-checkbashisms
+  :after flycheck
+  :init
+  :hook
+  (flycheck-mode . flycheck-checkbashisms-setup)
+  )
 (menu-bar-mode -1)
 (tool-bar-mode -1)
 
@@ -180,29 +286,28 @@ See the docstrings of `defalias' and `make-obsolete' for more details."
 
 
 ;; Package zygospore
-;; (use-package zygospore
-;;   :bind (("C-x 1" . zygospore-toggle-delete-other-windows)
-;;          ("RET" .   newline-and-indent)))
+(use-package zygospore
+  :bind (("C-x 1" . zygospore-toggle-delete-other-windows)
+         ("RET" .   newline-and-indent)))
 
 ;; automatically indent when press RET
 ;; activate whitespace-mode to view all whitespace characters
 (global-set-key (kbd "C-c w") 'whitespace-mode)
 (windmove-default-keybindings)
 
-;;    (require 'setup-helm)
-;; (require 'setup-cedet)
-;; Mouse?
-;;  (setq helm-allow-mouse t)
-
-;;(require 'setup-helm-gtags)
-;; (require 'setup-editing)
-
 (setq global-mark-ring-max 5000         ; increase mark ring to contains 5000 entries
       mark-ring-max 5000                ; increase kill ring to contains 5000 entries
       mode-require-final-newline t      ; add a newline to end of file
       tab-width 4                       ; default to 4 visible spaces to display a tab
+      make-backup-files nil
+      create-lockfiles nil
+      auto-save-default nil
       )
 
+;; GROUP: Editing -> Killing
+(setq kill-ring-max 5000 ; increase kill-ring capacity
+      kill-whole-line t  ; if NIL, kill whole line and move the next line up
+      )
 (add-hook 'sh-mode-hook (lambda ()
                           (setq tab-width 4)))
 
@@ -211,14 +316,15 @@ See the docstrings of `defalias' and `make-obsolete' for more details."
 (set-language-environment "UTF-8")
 (prefer-coding-system 'utf-8)
 
+
+;; Fix indent in orgmode
+
+
 (setq-default indent-tabs-mode nil)
 (delete-selection-mode)
 (global-set-key (kbd "RET") 'newline-and-indent)
 
-;; GROUP: Editing -> Killing
-(setq kill-ring-max 5000 ; increase kill-ring capacity
-      kill-whole-line t  ; if NIL, kill whole line and move the next line up
-      )
+
 
 ;; show whitespace in diff-mode
 (add-hook 'diff-mode-hook (lambda ()
@@ -253,16 +359,15 @@ See the docstrings of `defalias' and `make-obsolete' for more details."
 ;; Package: yasnippet
 ;; GROUP: Editing -> Yasnippet
 ;; Package: yasnippet
+(use-package yasnippet-snippets
+  :after yasnippet)
 (use-package yasnippet
   :defer t
-  :init
-  (use-package yasnippet-snippets)
-  (add-hook 'prog-mode-hook 'yas-minor-mode))
-
-;; Package: clean-aindent-mode
+  :hook
+  (prog-mode . yas-minor-mode))
 (use-package clean-aindent-mode
-  :init
-  (add-hook 'prog-mode-hook 'clean-aindent-mode))
+  :hook
+  (prog-mode . clean-aindent-mode))
 
 ;; Package: dtrt-indent
 (use-package dtrt-indent
@@ -272,10 +377,11 @@ See the docstrings of `defalias' and `make-obsolete' for more details."
 
 ;; Package: ws-butler
 (use-package ws-butler
-  :init
-  (add-hook 'prog-mode-hook 'ws-butler-mode)
-  (add-hook 'text-mode 'ws-butler-mode)
-  (add-hook 'fundamental-mode 'ws-butler-mode))
+  :hook
+  (
+   (prog-mode . ws-butler-mode)
+   (text-mode . ws-butler-mode)
+   (fundamental-mode . ws-butler-mode)))
 
 ;; PACKAGE: comment-dwim-2
 (use-package comment-dwim-2
@@ -500,33 +606,38 @@ Position the cursor at it's beginning, according to the current mode."
 ;;   )
 
 (use-package ggtags
-  :init
-  (add-hook 'c-mode-hook 'ggtags-mode)
-  (add-hook 'c++-mode-hook 'ggtags-mode)
+  :hook (
+         (c-mode . ggtags-mode)
+         (c++-mode . ggtags-mode)
+         )
   )
 (use-package prescient
   :config
   (prescient-persist-mode))
-
 (use-package ivy
-  :init
-  (ivy-mode 1)
+  :config
+  (setq ivy-use-selectable-prompt t)
+  (define-key ivy-minibuffer-map (kbd "C-n") 'ivy-next-line)
+  (define-key ivy-minibuffer-map (kbd "C-p") 'ivy-previous-line)
   (global-set-key (kbd "M-s o") 'swiper)
-  (use-package ivy-prescient
-    :init (ivy-prescient-mode))
-  (use-package ivy-posframe
-    :init
-    (ivy-posframe-mode 1)
-    (setq ivy-posframe-display-functions-alist '((t . ivy-posframe-display))))
-  (use-package counsel
-    :init
-    (counsel-mode 1)
-    )
-  (use-package flyspell-correct-ivy
-    :after (:all flyspell ivy)
-    )
-  )
+  (ivy-mode 1))
 
+(use-package flyspell-correct-ivy
+  :after (:all flyspell ivy))
+(use-package counsel
+  :after ivy
+  :init
+  (counsel-mode 1))
+(use-package ivy-posframe
+  :after ivy
+  :init
+  (setq ivy-posframe-display-functions-alist '((t . ivy-posframe-display)))
+  (ivy-posframe-mode 1))
+
+(use-package ivy-prescient
+  :after ivy
+  :init
+  (ivy-prescient-mode))
 ;; (use-package counsel-gtags
 ;;   :bind-keymap ("C-c g" . counsel-gtags-command-map)
 ;;   :config
@@ -549,27 +660,30 @@ Position the cursor at it's beginning, according to the current mode."
   (global-ede-mode)
   )
 (use-package semantic
-  :init
+  :config
   ;; (global-semanticdb-minor-mode 1)
   ;; (global-semantic-idle-scheduler-mode 1)
   (semantic-mode 1)
-
   (setq semantic-new-buffer-setup-functions
-        (remove-if (lambda (buffer-setup-function)
-                     (member (car buffer-setup-function)
-                             '(python-mode html-mode)))
-                   semantic-new-buffer-setup-functions))
-
+        (cl-remove-if (lambda (buffer-setup-function)
+                        (member (car buffer-setup-function)
+                                '(python-mode html-mode)))
+                      semantic-new-buffer-setup-functions))
   (remove-hook 'python-mode-hook 'wisent-python-default-setup)
   )
 
 
 
 (use-package irony
+  :after company-irony
+  :hook (
+         (c++-mode . irony-mode)
+         (c-mode .irony-mode)
+         (objc-mode . irony-mode)
+         (irony-mode . irony-cdb-autosetup-compile-options)
+         (irony-mode . company-irony-setup-begin-commands))
   :init
-  (add-hook 'c++-mode-hook 'irony-mode)
-  (add-hook 'c-mode-hook 'irony-mode)
-  (add-hook 'objc-mode-hook 'irony-mode)
+
 
   (defun my-irony-mode-hook ()
     "Custom irony mode hook to remap keys."
@@ -577,95 +691,104 @@ Position the cursor at it's beginning, according to the current mode."
       'irony-completion-at-point-async)
     (define-key irony-mode-map [remap complete-symbol]
       'irony-completion-at-point-async))
-
   (add-hook 'irony-mode-hook 'my-irony-mode-hook)
-  (add-hook 'irony-mode-hook 'irony-cdb-autosetup-compile-options)
-  (add-hook 'irony-mode-hook 'company-irony-setup-begin-commands)
-
 
   (setq-mode-local c-mode semanticdb-find-default-throttle
                    '(local project unloaded recursive))
   (setq-mode-local c++-mode semanticdb-find-default-throttle
                    '(local project unloaded recursive))
-
   (semantic-remove-system-include "/usr/include/" 'c++-mode)
   (semantic-remove-system-include "/usr/local/include/" 'c++-mode)
   (add-hook 'semantic-init-hooks
             'semantic-reset-system-include)
   )
-
 (use-package company
-  :defer t
   :bind (:map company-active-map ("<tab>" . company-complete-selection))
+  :custom
+  (frame-set-background-mode t)
+  (x-gtk-use-system-tooltips nil)
+  (tooltip-frame-parameters 1)
+  (company-backends (delete 'company-semantic company-backends))
+  (company-idle-delay 0.2)
+  (company-abbrev 'company-dabbrev)
   :config
-
-  (use-package company-prescient
-    :init (company-prescient-mode))
-
-  (use-package rtags
-    :init
-    (use-package company-rtags))
-
-  (use-package company-irony
-    :init
-    (use-package company-irony-c-headers
-      :init
-      (add-to-list 'company-backends 'company-irony-c-headers)
-      ))
-  ;; (use-package company-yasnippet)
-  (add-hook 'after-init-hook 'global-company-mode)
-  :config
-  (setq frame-set-background-mode t)
-  (setq x-gtk-use-system-tooltips nil)
-  (setq tooltip-frame-parameters 1)
-
-  (setq company-backends (delete 'company-semantic company-backends))
-  (setq company-idle-delay 0.8)
+  (global-company-mode)
   (add-to-list
    'company-backends '(company-irony
-                       ;; company-yasnippet
                        company-clang
                        company-rtags
                        company-files
                        company-keywords
-                       company-capf))
-  (setq company-abbrev 'company-dabbrev)
-
-  (defun company-backend-with-yas (backends)
-    "Add :with company-yasnippet to company BACKENDS.
-Taken from https://github.com/syl20bnr/spacemacs/pull/179."
-    (if (and (listp backends) (memq 'company-yasnippet backends))
-        backends
-      (append (if (consp backends)
-                  backends
-                (list backends))
-              '(:with company-yasnippet))))
-
-  ;; add yasnippet to all backends
-  (setq company-backends
-        (mapcar 'company-backend-with-yas company-backends))
-
+                       company-capf
+                       company-yasnippet
+                       ))
   )
+(use-package company-prescient
+  :after company prescient
+  :init (company-prescient-mode))
+(use-package rtags)
+(use-package company-rtags
+  :after company rtags)
+
+(use-package company-irony
+  :after company irony
+  )
+(use-package company-irony-c-headers
+  :after company irony
+  :config
+  (add-to-list 'company-backends 'company-irony-c-headers))
+(use-package company-auctex
+  :after company
+  :config
+  (add-to-list 'company-backends 'company-auctex))
+(use-package company-reftex
+  :after company
+  :config
+  (add-to-list 'company-backends '(company-reftex-labels company-reftex-citations))
+  )
+
+
+
+
+;; (use-package company-yasnippet
+;;   :after company
+;;   :config
+;;   (defun company-backend-with-yas (backends)
+;;     "Add :with company-yasnippet to company BACKENDS.
+;; Taken from https://github.com/syl20bnr/spacemacs/pull/179."
+;;     (if (and (listp backends) (memq 'company-yasnippet backends))
+;;         backends
+;;       (append (if (consp backends)
+;;                   backends
+;;                 (list backends))
+;;               '(:with company-yasnippet))))
+;;   ;; add yasnippet to all backends
+;;   (setq company-backends
+;;         (mapcar 'company-backend-with-yas company-backends)))
+
 (use-package company-posframe
+  :after company
   :hook (company-mode . company-posframe-mode))
+
 (use-package company-box
   :hook (company-mode . company-box-mode)
   :after (company ivy-posframe)
-  :config
-  (setq company-box-icons-alist 'company-box-icons-images)
-
-  (setq company-box-doc-delay 0.8)
-  (setq company-box-max-candidates 1000)
-  (setq company-box-show-single-candidate t)
-  (setq company-tooltip-align-annotations t)
-
+  :custom
+  (company-box-icons-alist 'company-box-icons-images)
+  (company-box-doc-delay 0.2)
+  (company-box-show-single-candidate t)
+  (company-tooltip-align-annotations t)
   )
 (use-package company-quickhelp
+  :after company
   :defines company-quickhelp-delay
   :bind (:map company-active-map
               ("M-h" . company-quickhelp-manual-begin))
-  :hook (global-company-mode . company-quickhelp-mode)
-  :custom (company-quickhelp-delay 0.8))
+
+  :custom (company-quickhelp-delay 0.2)
+  :config
+  (company-quickhelp-mode)
+  )
 ;; Folding code
 (use-package hideshow
   :init
@@ -684,8 +807,6 @@ Taken from https://github.com/syl20bnr/spacemacs/pull/179."
               (error t))
             (hs-show-all))
       (toggle-selective-display column)))
-  (global-set-key (kbd "M-<up>") 'beginning-of-defun)
-  (global-set-key (kbd "M-<down>") 'end-of-defun)
   (global-set-key (kbd "C-x \\") 'toggle-hiding)
   (global-set-key (kbd "C-\\") 'toggle-selective-display)
   (add-hook 'c-mode-common-hook  'hs-minor-mode)
@@ -697,42 +818,47 @@ Taken from https://github.com/syl20bnr/spacemacs/pull/179."
   (global-aggressive-indent-mode 1)
   (add-to-list 'aggressive-indent-excluded-modes 'html-mode)
   )
-;; Fix indent in orgmode
-(setq org-src-tab-acts-natively t)
 
 (defun my-org-mode-hook ()
-  (add-hook 'completion-at-point-functions 'pcomplete-completions-at-point nil t))
+  "My org mode hook."
+  (add-hook 'completion-at-point-functions 'pcomplete-completions-at-point nil t)
+  (setq org-support-shift-select t)
+  (setq org-src-tab-acts-natively t)
+  )
 (add-hook 'org-mode-hook #'my-org-mode-hook)
-;; (use-package helm-ag)
+
 (use-package markdown-mode
-  ;; :ensure t
   :commands (markdown-mode gfm-mode)
   :mode (("README\\.md\\'" . gfm-mode)
          ("\\.md\\'" . markdown-mode)
          ("\\.markdown\\'" . markdown-mode))
-  :init (setq markdown-command "multimarkdown"))
+  :custom (markdown-command "multimarkdown"))
 
 (use-package tex
   :straight auctex
-  :defer t
+  :hook (
+         (LaTeX-mode . visual-line-mode)
+         (LaTeX-mode . flyspell-mode)
+         (LaTeX-mode . LaTeX-math-mode)
+         (LaTeX-mode . turn-on-reftex)
+         (LaTeX-mode . TeX-PDF-mode)
+         (LaTeX-mode . TeX-source-correlate-mode)
+         )
+  ;; revert pdf-view after compilation
+  (TeX-after-compilation-finished-functions . #'TeX-revert-document-buffer) ;
+  :custom
+  (TeX-auto-save t)
+  (TeX-parse-self t)
+  (TeX-save-query nil)
+  (TeX-view-program-selection '((output-pdf "PDF Tools"))
+                              TeX-source-correlate-start-server t
+                              TeX-source-correlate-method 'synctex
+                              )
+  (reftex-plug-into-AUCTeX t)
+  (reftex-bibliography-commands '("bibliography" "nobibliography" "addbibresource"))
   :config
-  (setq TeX-auto-save t)
-  (setq TeX-parse-self t)
 
-  (setq TeX-save-query nil)
   ;; (setq-default TeX-master nil)
-  (add-hook 'LaTeX-mode-hook 'visual-line-mode)
-  (add-hook 'LaTeX-mode-hook 'flyspell-mode)
-  (add-hook 'LaTeX-mode-hook 'LaTeX-math-mode)
-  (add-hook 'LaTeX-mode-hook 'turn-on-reftex)
-  (add-hook 'LaTeX-mode-hook 'TeX-PDF-mode)
-  (add-hook 'LaTeX-mode-hook 'TeX-source-correlate-mode)
-
-  (setq TeX-view-program-selection '((output-pdf "PDF Tools"))
-        TeX-source-correlate-start-server t
-        TeX-source-correlate-method 'synctex
-        )
-  (setq reftex-plug-into-AUCTeX t)
 
   (defun guess-TeX-master (filename)
     "Guess the master file for FILENAME from currently open .tex files."
@@ -756,22 +882,19 @@ Taken from https://github.com/syl20bnr/spacemacs/pull/179."
   (add-hook 'LaTeX-mode-hook
             '(lambda ()
                (setq TeX-master (guess-TeX-master (buffer-file-name)))))
-  ;; revert pdf-view after compilation
-  (add-hook 'TeX-after-compilation-finished-functions #'TeX-revert-document-buffer) ;
+
   )
 (use-package pdf-tools
+  :custom
+  (pdf-view-display-size 'fit-page)
+  (pdf-annot-activate-created-annotations t)
+  (pdf-view-resize-factor 1.1)
+  :magic ("%PDF" . pdf-view-mode)
   :config
-  (pdf-tools-install)
-  (setq-default pdf-view-display-size 'fit-page)
-  (setq pdf-annot-activate-created-annotations t)
-  (setq pdf-view-resize-factor 1.1)
-
+  (pdf-tools-install :no-query)
   )
 
-;; Disable temp files
-(setq make-backup-files nil)
-(setq create-lockfiles nil)
-(setq auto-save-default nil)
+
 (use-package sublimity
   :init
   (sublimity-mode 1))
@@ -812,9 +935,8 @@ Taken from https://github.com/syl20bnr/spacemacs/pull/179."
   (("M-o". 'ace-window))
   )
 (use-package avy
-  :init
   :bind
-  (("C-c SPC". 'avy-goto-word-1))
+  (("C-j". 'avy-goto-word-1))
   (("M-g g". 'avy-goto-line))
   )
 
@@ -827,7 +949,7 @@ Taken from https://github.com/syl20bnr/spacemacs/pull/179."
   :bind
   (("C-<return>". 'ein:worksheet-execute-cell-km))
   )
-(setq org-support-shift-select t)
+
 ;; Save sessions
 ;; (setq desktop-save-mode t)
 ;; ;;
@@ -856,6 +978,8 @@ Taken from https://github.com/syl20bnr/spacemacs/pull/179."
    [default bold shadow italic underline bold bold-italic bold])
  '(ansi-color-names-vector
    (vector "#ffffff" "#f36c60" "#8bc34a" "#fff59d" "#4dd0e1" "#b39ddb" "#81d4fa" "#263238"))
+ '(custom-safe-themes
+   '("9f4ac26108e9da0c9ad7c1adcc5bdb1acef6ea369d6578567ca937cbb3145d3b" default))
  '(default-input-method "rfc1345")
  '(fci-rule-color "#212121")
  '(hl-sexp-background-color "#121212")
