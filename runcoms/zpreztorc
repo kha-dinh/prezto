@@ -42,7 +42,8 @@ zstyle ':prezto:load' pmodule \
   'autosuggestions' \
   'emacs' \
   'history-substring-search' \
-  'syntax-highlighting' 
+  'syntax-highlighting' \
+  'zsh-z'
 
 #
 # Autosuggestions
