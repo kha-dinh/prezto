@@ -25,10 +25,10 @@ autoload -Uz promptinit
 promptinit
 prompt powerlevel10k
 
-source ~/.antigen.zsh
-antigen use oh-my-zsh
-antigen bundle b4b4r07/enhancd
-antigen apply
+# source ~/.antigen.zsh
+# antigen use oh-my-zsh
+# antigen bundle b4b4r07/enhancd
+# antigen apply
 
 # Customize to your needs...
 bindkey '^[[A' history-substring-search-up
