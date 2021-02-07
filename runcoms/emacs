@@ -561,14 +561,13 @@ Position the cursor at it's beginning, according to the current mode."
 
 (global-set-key (kbd "M-o") 'prelude-smart-open-line)
 (global-set-key (kbd "M-o") 'open-line)
+
 (use-package projectile
   :bind-keymap ("C-x p" . projectile-command-map)
-  :init
-  (projectile-global-mode)
+  :config
+  (projectile-mode)
   (setq projectile-enable-caching t)
-  (setq projectile-completion-system 'ivy)
-
-  )
+  (setq projectile-completion-system 'ivy))
 ;; (use-package helm
 ;;   :config
 ;;   (use-package helm-gtags
@@ -608,9 +607,7 @@ Position the cursor at it's beginning, according to the current mode."
 (use-package ggtags
   :hook (
          (c-mode . ggtags-mode)
-         (c++-mode . ggtags-mode)
-         )
-  )
+         (c++-mode . ggtags-mode)))
 (use-package prescient
   :config
   (prescient-persist-mode))
@@ -621,7 +618,41 @@ Position the cursor at it's beginning, according to the current mode."
   (define-key ivy-minibuffer-map (kbd "C-p") 'ivy-previous-line)
   (global-set-key (kbd "M-s o") 'swiper)
   (ivy-mode 1))
+(use-package lsp-ivy
+  :after ivy)
+(use-package lsp-treemacs
+  :config
+  (lsp-treemacs-sync-mode 1))
+;; (use-package lsp-mode)
+(use-package powerthesaurus
+  :bind
+  (("C-x t s" . powerthesaurus-lookup-word-dwim)))
 
+(use-package grammarly
+  ;; :custom ((grammarly-username "hojoon.lee@skku.edu")
+  ;;          (grammarly-password "Ttlxmpa-l33t"))
+  :config
+  (add-to-list 'grammarly-on-message-function-list 'test-on-message)
+  (defun test-on-message (data)
+    "On message callback with DATA."
+    (message "[DATA] %s" data))
+  )
+;; (setcdr (nth 1 auth) grammarly--cookies)
+;; Set callback for receiving data.
+(grammarly-check-text "Hello World")
+(use-package flycheck-grammarly
+  :after grammarly)
+;; :hook
+;; ((LaTeX-mode . flyspell-grammarly)))
+(use-package lsp-latex
+  :straight (lsp-latex :type git :host github :repo "ROCKTAKEY/lsp-latex")
+  :custom (lsp-latex-texlab-executable "~/.cargo/bin/texlab")
+  :hook
+  ((tex-mode . lsp)
+   (LaTeX-mode . lsp)
+   (bibtex-mode . lsp))
+
+  )
 (use-package flyspell-correct-ivy
   :after (:all flyspell ivy))
 (use-package counsel
@@ -656,9 +687,8 @@ Position the cursor at it's beginning, according to the current mode."
   )
 
 (use-package ede
-  :init
-  (global-ede-mode)
-  )
+  :config
+  (global-ede-mode))
 (use-package semantic
   :config
   ;; (global-semanticdb-minor-mode 1)
@@ -669,29 +699,19 @@ Position the cursor at it's beginning, according to the current mode."
                         (member (car buffer-setup-function)
                                 '(python-mode html-mode)))
                       semantic-new-buffer-setup-functions))
-  (remove-hook 'python-mode-hook 'wisent-python-default-setup)
-  )
+  (remove-hook 'python-mode-hook 'wisent-python-default-setup))
 
 
 
 (use-package irony
-  :after company-irony
-  :hook (
-         (c++-mode . irony-mode)
-         (c-mode .irony-mode)
-         (objc-mode . irony-mode)
-         (irony-mode . irony-cdb-autosetup-compile-options)
-         (irony-mode . company-irony-setup-begin-commands))
   :init
-
-
   (defun my-irony-mode-hook ()
     "Custom irony mode hook to remap keys."
     (define-key irony-mode-map [remap completion-at-point]
       'irony-completion-at-point-async)
     (define-key irony-mode-map [remap complete-symbol]
       'irony-completion-at-point-async))
-  (add-hook 'irony-mode-hook 'my-irony-mode-hook)
+
 
   (setq-mode-local c-mode semanticdb-find-default-throttle
                    '(local project unloaded recursive))
@@ -699,9 +719,14 @@ Position the cursor at it's beginning, according to the current mode."
                    '(local project unloaded recursive))
   (semantic-remove-system-include "/usr/include/" 'c++-mode)
   (semantic-remove-system-include "/usr/local/include/" 'c++-mode)
-  (add-hook 'semantic-init-hooks
-            'semantic-reset-system-include)
-  )
+  :hook (
+         (c++-mode . irony-mode)
+         (c-mode .irony-mode)
+         (objc-mode . irony-mode)
+         (irony-mode . irony-cdb-autosetup-compile-options)
+         (irony-mode . company-irony-setup-begin-commands)
+         (irony-mode . my-irony-mode-hook)
+         (semantic-init . semantic-reset-system-include)))
 (use-package company
   :bind (:map company-active-map ("<tab>" . company-complete-selection))
   :custom
@@ -711,6 +736,7 @@ Position the cursor at it's beginning, according to the current mode."
   (company-backends (delete 'company-semantic company-backends))
   (company-idle-delay 0.2)
   (company-abbrev 'company-dabbrev)
+  (company-preview-if-just-one-frontend t)
   :config
   (global-company-mode)
   (add-to-list
@@ -721,34 +747,19 @@ Position the cursor at it's beginning, according to the current mode."
                        company-keywords
                        company-capf
                        company-yasnippet
-                       ))
-  )
+                       )))
 (use-package company-prescient
   :after company prescient
   :init (company-prescient-mode))
 (use-package rtags)
 (use-package company-rtags
   :after company rtags)
-
 (use-package company-irony
-  :after company irony
-  )
+  :after company irony)
 (use-package company-irony-c-headers
-  :after company irony
+  :after company irony company-irony
   :config
   (add-to-list 'company-backends 'company-irony-c-headers))
-(use-package company-auctex
-  :after company
-  :config
-  (add-to-list 'company-backends 'company-auctex))
-(use-package company-reftex
-  :after company
-  :config
-  (add-to-list 'company-backends '(company-reftex-labels company-reftex-citations))
-  )
-
-
-
 
 ;; (use-package company-yasnippet
 ;;   :after company
@@ -836,16 +847,18 @@ Position the cursor at it's beginning, according to the current mode."
 
 (use-package tex
   :straight auctex
+  :mode ("\\.tex\\'" . LaTeX-mode)
   :hook (
          (LaTeX-mode . visual-line-mode)
          (LaTeX-mode . flyspell-mode)
          (LaTeX-mode . LaTeX-math-mode)
-         (LaTeX-mode . turn-on-reftex)
+         (LaTeX-mode . reftex-mode)
          (LaTeX-mode . TeX-PDF-mode)
          (LaTeX-mode . TeX-source-correlate-mode)
+
+         ;; revert pdf-view after compilation
+         (TeX-after-compilation-finished-functions . #'TeX-revert-document-buffer) ;
          )
-  ;; revert pdf-view after compilation
-  (TeX-after-compilation-finished-functions . #'TeX-revert-document-buffer) ;
   :custom
   (TeX-auto-save t)
   (TeX-parse-self t)
@@ -857,33 +870,50 @@ Position the cursor at it's beginning, according to the current mode."
   (reftex-plug-into-AUCTeX t)
   (reftex-bibliography-commands '("bibliography" "nobibliography" "addbibresource"))
   :config
-
+  ;; (dolist (hook '(latex-mode-hook LaTeX-mode-hook)))
   ;; (setq-default TeX-master nil)
 
-  (defun guess-TeX-master (filename)
-    "Guess the master file for FILENAME from currently open .tex files."
-    (let ((candidate nil)
-          (filename (file-name-nondirectory filename)))
-      (save-excursion
-        (dolist (buffer (buffer-list))
-          (with-current-buffer buffer
-            (let ((name (buffer-name))
-                  (file buffer-file-name))
-              (if (and file (string-match "\\.tex$" file))
-                  (progn
-                    (goto-char (point-min))
-                    (if (re-search-forward (concat "\\\\input{" filename "}") nil t)
-                        (setq candidate file))
-                    (if (re-search-forward (concat "\\\\include{" (file-name-sans-extension filename) "}") nil t)
-                        (setq candidate file))))))))
-      (if candidate
-          (message "TeX master document: %s" (file-name-nondirectory candidate)))
-      candidate))
-  (add-hook 'LaTeX-mode-hook
-            '(lambda ()
-               (setq TeX-master (guess-TeX-master (buffer-file-name)))))
-
+  ;; (defun guess-TeX-master (filename)
+  ;;   "Guess the master file for FILENAME from currently open .tex files."
+  ;;   (let ((candidate nil)
+  ;;         (filename (file-name-nondirectory filename)))
+  ;;     (save-excursion
+  ;;       (dolist (buffer (buffer-list))
+  ;;         (with-current-buffer buffer
+  ;;           (let ((name (buffer-name))
+  ;;                 (file buffer-file-name))
+  ;;             (if (and file (string-match "\\.tex$" file))
+  ;;                 (progn
+  ;;                   (goto-char (point-min))
+  ;;                   (if (re-search-forward (concat "\\\\input{" filename "}") nil t)
+  ;;                       (setq candidate file))
+  ;;                   (if (re-search-forward (concat "\\\\include{" (file-name-sans-extension filename) "}") nil t)
+  ;;                       (setq candidate file))))))))
+  ;;     (if candidate
+  ;;         (message "TeX master document: %s" (file-name-nondirectory candidate)))
+  ;;     candidate))
+  ;; (add-hook 'LaTeX-mode-hook
+  ;;           '(lambda ()
+  ;;              (setq TeX-master (guess-TeX-master (buffer-file-name)))))
   )
+
+(use-package company-bibtex
+  :after company tex
+  :init
+  (add-to-list 'company-backends '(company-bibtex))
+  )
+
+(use-package company-reftex
+  :after company tex
+  :init
+  (add-to-list 'company-backends '(company-reftex-labels company-reftex-citations))
+  )
+
+;; (use-package company-auctex
+;;   :after company tex
+;;   :config
+;;   (add-to-list 'company-backends 'company-auctex))
+
 (use-package pdf-tools
   :custom
   (pdf-view-display-size 'fit-page)
@@ -979,7 +1009,7 @@ Position the cursor at it's beginning, according to the current mode."
  '(ansi-color-names-vector
    (vector "#ffffff" "#f36c60" "#8bc34a" "#fff59d" "#4dd0e1" "#b39ddb" "#81d4fa" "#263238"))
  '(custom-safe-themes
-   '("9f4ac26108e9da0c9ad7c1adcc5bdb1acef6ea369d6578567ca937cbb3145d3b" default))
+   '("bbb3b96ad231e1760482aa502801d85d0e6c5dc3ac0a30f9c1820a2a6d1c9983" "270026e67ff525d0c7a60de846baad0c0a3562377849bc46d04c3c82860d6c06" "008f374a54ce67b5445d4a66c24fe28bf686f4f4b9c54a263e9bfaad689552f5" "fedb49ee135e71333adab7253a0c586c0d920881deeff597771935a9d05bb620" "33a4e6dfc22b219c6cc090a6d4602f67062179ea5d21f23adeb549c79d68a7ec" "f83c15d8de78fbba9443b57fdcb534d9cc9f8b77fe13907fd2bddaa7e59ff045" "2881463727c65d61d245e2def8a06b0a19bc3e1facfe212ad4b38a7b405e0663" "4d6405ba2a5440a79cabdc62e67c1d217ce1c44e0504e136eb74af5932c02946" "39a9223b1fdd1c57bbeb610dcdc90d76c1b28f2ddf135e75167360934604311b" "8e80ec02a6e53d47b60961747a35da19b13561f7b9bdba18ae8875cd49c3e880" "d34793246a37dd8ab1e5d43c36182ce3d8426fa6db6d460a8c96f0acb1a66147" "1d6568b56f7ed674dc91ccc7b7bb5dce25486abe179c081e768ed9582dff536a" "f2429ef5091ea6924e1d8356482b5aebd57ce6210d2646af460729c32937d4f2" "90a142485a05accaf1672337c4c83e8f53688df6cca378effa6458040bac4c94" "dbaaeb0ff70c059c54a242c2a73a2cc9066be2b33b63b5cb52a17a3348b61f12" "e51b93cc5601d46a30925693ba332a2eec573bfefd9983aa9a02f3d6deff3221" "d5b79717880118720f8e8c53e8ef39756f0d5f4f5700238464ccdef7d1f9008e" "3f88014c7e6f66efd1e11e1e747ea792276a2eda227f9ed0dcd7c2925c979494" "99280e03896e625260ff33ff70a6a34375b08d87ebff4c170075bfd768665cd6" "9c6357c81303a41d805b2dfbe880221d4f7acd9934c357a59a5df3f89226c21a" "6677d0a333f87a6ed8d50916329b82e4187893fa25c704e0ed0b743d00bf17a7" "5548e52de2bfe337fc1e8625ba6446373d4497ae3f1f8d7bd8858961e999a4b5" "3df18982a8c6c17afc4617a43d2ec3a09a39d91ce66da5fa2f2324a5d9eeaf2a" "db4b48dc4e8ce04b731b43e0bad9d8225d757feda403134486b632edf79b5ec7" "457f6a570500cfefb5e08001eed85b14b090ae9e5b001bf4fe9d61414d725691" "557a1f11fbe7df49965f04a17fd7888a384c84bbf7e6c89b316edf6c891ea3ad" "58b649bbee867c598d31a9de6b12ad66143105ff0b82de63d13e61df4fc0d363" "6ec1023848b5e8e5e9db4cb084a9e7bffcd2e35b574d50b33990888603237fed" "3866ddc59702ab5bc29d4fba04c022ac843af3ab4956d50bb6ecc774f35e54e8" "e8abde0312f496ac275e668050b340265da1ec3ac79c058e56021d032880d8f0" "b59529dc52932ce8d0098312cba67f48c5a4464996589629b41e5fd6b1fa0554" "f47c0e014460b6279407fa863d0325bc0a072aee6253530228e1b2dc0bb62b34" "2a07758a4786cf0dd99442e60e65272ac593b8043392c9f4ff140981a9788d23" "7db71058250e3ccc40549d897cf54b976266299ed782e69234a418f7c05c3366" "dffda2b63f7960ad54f9fd4369e0cb102be25c2f0038badad5cf3fa7328d5231" "fbcd4bac007f765d200a1d0e65ebc98e5192ef7b6e42c4fc16740e1bcb5352fc" "7091672c21df2675f9c0e3c4774526947653a480fd842c93e8cbef8a6e343b10" "448b484b956e2f11a6028b34aa188a33dd52f3351436b76e48acbb1c153d8bef" "84520f3c7f8ab65188e333ac180c3d10ff9dfe70229453952f51227e83d88ee5" "0598d84ffd31cc0bb40cdb1e5ee76304e8f025dfc498df1d96b191ea3f33c7bc" "2a0f701a583921a5d9a3e00b3fca25c7426913f12b1eb9203f3134d3d47e693c" "9f4ac26108e9da0c9ad7c1adcc5bdb1acef6ea369d6578567ca937cbb3145d3b" default))
  '(default-input-method "rfc1345")
  '(fci-rule-color "#212121")
  '(hl-sexp-background-color "#121212")
