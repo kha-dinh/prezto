@@ -647,19 +647,25 @@ Position the cursor at it's beginning, according to the current mode."
   )
 ;; (setcdr (nth 1 auth) grammarly--cookies)
 ;; Set callback for receiving data.
-(grammarly-check-text "Hello World")
+;; (grammarly-check-text "Hello World")
 (use-package flycheck-grammarly
   :after grammarly)
 ;; :hook
 ;; ((LaTeX-mode . flyspell-grammarly)))
 (use-package lsp-latex
   :straight (lsp-latex :type git :host github :repo "ROCKTAKEY/lsp-latex")
-  :custom (lsp-latex-texlab-executable "~/.cargo/bin/texlab")
+  :custom
+  (lsp-latex-texlab-executable "~/.cargo/bin/texlab")
+  (lsp-latex-forward-search-executable "emacsclient")
+  (lsp-latex-forward-search-args
+   '("--eval"
+     "(lsp-latex-forward-search-with-pdf-tools \"%f\" \"%p\" \"%l\")"))
+  (lsp-latex-forward-search-after "true")
+
   :hook
   ((tex-mode . lsp)
    (LaTeX-mode . lsp)
    (bibtex-mode . lsp))
-
   )
 (use-package flyspell-correct-ivy
   :after (:all flyspell ivy))
