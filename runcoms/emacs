@@ -618,8 +618,15 @@ Position the cursor at it's beginning, according to the current mode."
   (define-key ivy-minibuffer-map (kbd "C-p") 'ivy-previous-line)
   (global-set-key (kbd "M-s o") 'swiper)
   (ivy-mode 1))
+
+(use-package all-the-icons-ivy-rich
+  :after ivy
+  :init (all-the-icons-ivy-rich-mode 1))
+(use-package ivy-rich
+  :init (ivy-rich-mode 1))
 (use-package lsp-ivy
   :after ivy)
+
 (use-package lsp-treemacs
   :config
   (lsp-treemacs-sync-mode 1))
@@ -628,14 +635,15 @@ Position the cursor at it's beginning, according to the current mode."
   :bind
   (("C-x t s" . powerthesaurus-lookup-word-dwim)))
 
+
 (use-package grammarly
   ;; :custom ((grammarly-username "hojoon.lee@skku.edu")
   ;;          (grammarly-password "Ttlxmpa-l33t"))
   :config
-  (add-to-list 'grammarly-on-message-function-list 'test-on-message)
-  (defun test-on-message (data)
-    "On message callback with DATA."
-    (message "[DATA] %s" data))
+  ;; (add-to-list 'grammarly-on-message-function-list 'test-on-message)
+  ;; (defun test-on-message (data)
+  ;;   "On message callback with DATA."
+  ;;   (message "[DATA] %s" data))
   )
 ;; (setcdr (nth 1 auth) grammarly--cookies)
 ;; Set callback for receiving data.
@@ -847,7 +855,7 @@ Position the cursor at it's beginning, according to the current mode."
 
 (use-package tex
   :straight auctex
-  :mode ("\\.tex\\'" . LaTeX-mode)
+  ;; :mode ("\\.tex\\'" . LaTeX-mode)
   :hook (
          (LaTeX-mode . visual-line-mode)
          (LaTeX-mode . flyspell-mode)

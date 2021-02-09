@@ -36,3 +36,6 @@
 [submodule "modules/zsh-z"]
 	path = modules/zsh-z
 	url = https://github.com/agkozak/zsh-z.git
+[submodule "contrib/zsh-histdb"]
+	path = contrib/zsh-histdb
+	url = https://github.com/larkery/zsh-histdb
