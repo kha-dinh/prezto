@@ -1138,14 +1138,15 @@ T - tag prefix
     ("." nil :color blue))
   )
 
-
-
+;; (set-window-margins nil 0)
+(global-display-line-numbers-mode)
 (scroll-bar-mode -1)
 (xterm-mouse-mode +1) ;; Mouse clicks
 
 (global-auto-revert-mode t)
 ;;(add-hook 'emacs-startup-hook 'desktop-read)
 
+;; (setq left-fringe-width 10)
 
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
