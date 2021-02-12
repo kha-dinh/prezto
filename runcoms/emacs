@@ -19,7 +19,9 @@ See the docstrings of `defalias' and `make-obsolete' for more details."
   `(progn
      (defalias ,obsolete-name ,current-name ,docstring)
      (make-obsolete ,obsolete-name ,current-name ,when)))
+
 ;; Straight:
+(defvar straight-use-package-by-default)
 (setq straight-use-package-by-default t)
 (defvar bootstrap-version)
 (let ((bootstrap-file
@@ -34,14 +36,6 @@ See the docstrings of `defalias' and `make-obsolete' for more details."
       (eval-print-last-sexp)))
   (load bootstrap-file nil 'nomessage))
 (straight-use-package 'use-package)
-;; Key bindings
-(global-set-key (kbd "C-x k") 'kill-current-buffer)
-(global-set-key (kbd "C-x C-k") 'kill-buffer-and-window)
-(global-set-key (kbd "C-x C-r") 'eval-region)
-(global-set-key (kbd "M-<up>") 'beginning-of-defun)
-(global-set-key (kbd "M-p") 'beginning-of-defun)
-(global-set-key (kbd "M-<down>") 'end-of-defun)
-(global-set-key (kbd "M-n") 'end-of-defun)
 
 (use-package hydra)
 (setq remote-file-name-inhibit-cache nil)
@@ -50,70 +44,25 @@ See the docstrings of `defalias' and `make-obsolete' for more details."
               vc-ignore-dir-regexp
               tramp-file-name-regexp))
 (setq tramp-verbose 1)
-(global-set-key
- (kbd "C-n")
- (defhydra hydra-move
-   (:body-pre (next-line))
-   "move"
-   ("n" next-line)
-   ("p" previous-line)
-   ("f" forward-char)
-   ("b" backward-char)
-   ("a" beginning-of-line)
-   ("e" move-end-of-line)
-   ("M-p" beginning-of-defun)
-   ("M-n" end-of-defun)
-   ("v" scroll-up-command)
-   ;; Converting M-v to V here by analogy.
-   ("V" scroll-down-command)
-   ("l" recenter-top-bottom)
-   ("o" nil nil)))
+;; A more complex, more lazy-loaded config
 
-(defhydra hydra-rectangle (:body-pre (rectangle-mark-mode 1)
-                                     :color pink
-                                     :post (deactivate-mark))
-  "
-  ^_k_^     _d_elete    _s_tring
-_h_   _l_   _o_k        _y_ank
-  ^_j_^     _n_ew-copy  _r_eset
-^^^^        _e_xchange  _u_ndo
-^^^^        ^ ^         _p_aste
-"
-  ("h" backward-char nil)
-  ("l" forward-char nil)
-  ("k" previous-line nil)
-  ("j" next-line nil)
-  ("e" exchange-point-and-mark nil)
-  ("n" copy-rectangle-as-kill nil)
-  ("d" delete-rectangle nil)
-  ("r" (if (region-active-p)
-           (deactivate-mark)
-         (rectangle-mark-mode 1)) nil)
-  ("y" yank-rectangle nil)
-  ("u" undo nil)
-  ("s" string-rectangle nil)
-  ("p" kill-rectangle nil)
-  ("o" nil nil))
-
-(global-set-key (kbd "C-x SPC") 'hydra-rectangle/body)
 ;; Magitk
 (use-package magit)
 ;; Directory tree
 (use-package treemacs
-  :bind
-  (:map global-map
-        ("M-0"       . treemacs-select-window)
-        ("C-x t 1"   . treemacs-delete-other-windows)
-        ("C-x t t"   . treemacs)
-        ("C-x t B"   . treemacs-bookmark)
-        ("C-x t f" . treemacs-find-file)
-        ("C-x t ." . treemacs-find-tag)
-        ("C-x t p"   . treemacs-projectile)
-        )
+  ;; :bind
+  ;; (:map global-map
+  ;;       ("M-0"       . treemacs-select-window)
+  ;;       ("C-x t 1"   . treemacs-delete-other-windows)
+  ;;       ("C-x t t"   . treemacs)
+  ;;       ("C-x t B"   . treemacs-bookmark)
+  ;;       ("C-x t f" . treemacs-find-file)
+  ;;       ("C-x t ." . treemacs-find-tag)
+  ;;       ("C-x t p"   . treemacs-projectile)
+  ;;       )
   :config
   ;; (global-set-key [f8] 'neotree-toggle)
   ;; (treemacs-resize-icons 22)
-
   (treemacs-follow-mode t)
   (treemacs-filewatch-mode t)
   (treemacs-fringe-indicator-mode 'always)
@@ -124,17 +73,28 @@ _h_   _l_   _o_k        _y_ank
     (`(t . _)
      (treemacs-git-mode 'simple))))
 
-(use-package treemacs-projectile
-  :after treemacs projectile
-  )
+(use-package treemacs-projectile)
 (use-package treemacs-icons-dired
-  :after treemacs dired
   :config (treemacs-icons-dired-mode))
 
-(use-package treemacs-magit
-  :after treemacs magit
-  )
+(defun display-ansi-colors ()
+  (interactive)
+  (let ((inhibit-read-only t))
+    (ansi-color-apply-on-region (point-min) (point-max))))
+;; Format colors
+(add-to-list 'auto-mode-alist '("\\.log\\'" . (display-ansi-colors auto-revert-tail-mode)))
+(add-to-list 'auto-mode-alist '("\\.terminal\\'" . (display-ansi-colors auto-revert-tail-mode)))
 
+;; Auto follow
+;; (add-to-list 'auto-mode-alist '("\\.log\\'" . ))
+
+(use-package treemacs-magit)
+
+;; (use-package smart-hungry-delete
+;;   :bind (("<backspace>" . smart-hungry-delete-backward-char)
+;; 		 ("<C-d>" . smart-hungry-delete-forward-char))
+;;   :config (smart-hungry-delete-add-default-hooks)
+;;   )
 ;; Auto resize windows
 (use-package zoom
   :config
@@ -143,31 +103,50 @@ _h_   _l_   _o_k        _y_ank
   )
 ;; Dashboard
 (use-package dashboard
-  :config
-  (
-   dashboard-setup-startup-hook)
-  )
+  :config ( dashboard-setup-startup-hook))
 ;; Dim other panels when not used
 (use-package dimmer
+  :hook
+  (after-init . dimmer-mode)
   :config
-  (dimmer-mode)
   (dimmer-configure-which-key)
   (dimmer-configure-company-box)
   (dimmer-configure-magit)
   (dimmer-configure-posframe)
-  ;; (dimmer-fraction 0.6)
+
+  (setq dimmer-fraction 0.4)
   )
+(use-package lsp-ui
+  :custom
+  (lsp-ui-sideline-show-hover t)
+  ;; (lsp-ui-doc-enalbe )
+  (lsp-ui-doc-position 'at-point)
+  (lsp-ui-doc-delay 1.5)
+  (lsp-ui-doc-use-childframe nil)
+  ;; (lsp-ui-doc-show-with-cursor nil)
+  ;; (lsp-ui-doc-show-with-nil nil)
+  )
+
 ;; Centaur tabs
 (use-package centaur-tabs
-  :init
+  :config
+
+  (defhydra centaur-tab ()
+    "Centaur tab move:"
+    ("<left>" centaur-tabs-backward)
+    ("<right>" centaur-tabs-forward)
+    )
+  (global-set-key (kbd "C-x t") 'centaur-tab/body)
+
+  ;; (global-set-key (kbd "C-x <left>")  'centaur-tabs-backward)
+  ;; (global-set-key (kbd "C-x <right>") 'centaur-tabs-forward)
   (centaur-tabs-mode +1)
-  (global-set-key (kbd "C-x <left>")  'centaur-tabs-backward)
-  (global-set-key (kbd "C-x <right>") 'centaur-tabs-forward)
   (centaur-tabs-headline-match)
   (centaur-tabs-group-by-projectile-project)
-  :config
-  (setq centaur-tabs-style "wave")
-  (setq centaur-tabs-set-icons t)
+  :custom
+  (centaur-tabs-set-modified-marker t)
+  (centaur-tabs-style "wave")
+  (centaur-tabs-set-icons t)
   )
 
 (use-package nyan-mode
@@ -175,19 +154,91 @@ _h_   _l_   _o_k        _y_ank
   (setq nyan-wavy-trail t)
   (setq nyan-animation-frame-interval 0.1)
   :config
+  (nyan-mode)
   (nyan-start-animation)
   )
-;;(setq zone-timer (run-with-idle-timer  t 'zone))
-(use-package material-theme
-  :straight (material-theme :type git :host github :repo "cpaulik/emacs-material-theme"
-                            :fork (:host github
-                                         :repo "kha-dinh/emacs-material-theme"))
+;; (setq zone-timer (run-with-idle-timer  t 'zone))
+;; (use-package solaire-mode               ;
+
+;; ;;   :defines (solaire-mode-auto-swap-bg)
+;; ;;   ;; Ensure solaire-mode is running in all solaire-mode buffers
+;; ;;   :hook (change-major-mode . turn-on-solaire-mode)
+;; ;;   :hook (change-major-mode . turn-on-solaire-mode)
+
+;; ;;   ;; ...if you use auto-revert-mode, this prevents solaire-mode from turning
+;; ;;   ;; itself off every time Emacs reverts the file
+;; ;;   :hook (after-revert . turn-on-solaire-mode)
+;; ;;   ;; To enable solaire-mode unconditionally for certain modes:
+;; ;;   :hook (ediff-prepare-buffer . solaire-mode)
+;; ;;   ;; Highlight the minibuffer when it is activated:
+;; ;;   :hook (minibuffer-setup . solaire-mode-in-minibuffer)
+;; :config
+
+;; ;;   ;; The bright and dark background colors are automatically swapped the first
+;; ;;   ;; time solaire-mode is activated. Namely, the backgrounds of the `default` and
+;; ;;   ;; `solaire-default-face` faces are swapped. This is done because the colors
+;; ;;   ;; are usually the wrong way around. If you don't want this, you can disable it:
+;; (setq solaire-mode-auto-swap-bg nil)
+;; (solaire-global-mode +1)
+;; )
+
+(use-package iedit
+  :bind (("C-;" . iedit-mode))
+  :init
+  (setq iedit-toggle-key-default nil))
+
+(use-package highlight-symbol
+  :custom
+  (highlight-symbol-idle-delay 0)
+  :bind
+  ("C-q" . highlight-symbol-next)
+  ("M-q" . highlight-symbol-prev)
   :hook
-  (after-init . (lambda () (load-theme 'material t)))
+  (prog-mode . highlight-symbol-mode)
+  )
+(use-package beacon
+  :config (beacon-mode 1))
+(use-package rainbow-delimiters
+  :hook
+  (prog-mode . rainbow-delimiters-mode))
+(use-package yascroll
+  :config (global-yascroll-bar-mode))
+(use-package doom-themes
+  :custom-face
+  (default ((t (:background "#2a2e38"))))
+  (centaur-tabs-unselected ((t (:background "#242730"))))
+  (centaur-tabs-selected ((t (:background "#2a2e38"))))
+  :custom
+  ;; (doom-vibrant-brighter-comments t)
+  (doom-vibrant-brighter-modeline t)
+  :hook
+  (after-init . (lambda () (load-theme 'doom-vibrant t)))
+  )
+(use-package rainbow-mode)
+;; (use-package material-theme
+;;   :straight (material-theme :type git :host github :repo "cpaulik/emacs-material-theme"
+;;                             :fork (:host github
+;;                                          :repo "kha-dinh/emacs-material-theme"))
+;;   :hook
+;;   (after-init . (lambda () (load-theme 'material t)))
+;;   )
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; NAVIGATION
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Code navigation
+;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(use-package mwim
+  :bind
+  ("C-a" . mwim-beginning)
+  ("C-e" . mwim-end)
   )
 
-
-;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; PROGRAMMING
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -232,21 +283,17 @@ _h_   _l_   _o_k        _y_ank
          )
   )
 (use-package flycheck-color-mode-line
-  :after flycheck
   :init
   (add-hook 'flycheck-mode-hook 'flycheck-color-mode-line-mode))
 (use-package flycheck-pos-tip
-  :after flycheck
   :custom
   (flycheck-pos-tip-timeout nil)
   :init
   (flycheck-pos-tip-mode))
 (use-package flycheck-irony
-  :after flycheck
   :init
   (add-hook 'flycheck-mode-hook #'flycheck-irony-setup))
 (use-package flycheck-checkbashisms
-  :after flycheck
   :init
   :hook
   (flycheck-mode . flycheck-checkbashisms-setup)
@@ -396,11 +443,6 @@ _h_   _l_   _o_k        _y_ank
   (global-set-key (kbd "M-%") 'anzu-query-replace)
   (global-set-key (kbd "C-M-%") 'anzu-query-replace-regexp))
 
-;; PACKAGE: iedit
-(use-package iedit
-  :bind (("C-;" . iedit-mode))
-  :init
-  (setq iedit-toggle-key-default nil))
 
 ;; Customized functions
 (defun prelude-move-beginning-of-line (arg)
@@ -605,9 +647,10 @@ Position the cursor at it's beginning, according to the current mode."
 ;;   )
 
 (use-package ggtags
-  :hook (
-         (c-mode . ggtags-mode)
-         (c++-mode . ggtags-mode)))
+  :hook
+  ((c-mode . ggtags-mode)
+   (c++-mode . ggtags-mode))
+  )
 (use-package prescient
   :config
   (prescient-persist-mode))
@@ -617,23 +660,25 @@ Position the cursor at it's beginning, according to the current mode."
   (define-key ivy-minibuffer-map (kbd "C-n") 'ivy-next-line)
   (define-key ivy-minibuffer-map (kbd "C-p") 'ivy-previous-line)
   (global-set-key (kbd "M-s o") 'swiper)
+  (global-set-key (kbd "M-s M-o") 'counsel-semantic-or-imenu)
+
   (ivy-mode 1))
 
 (use-package all-the-icons-ivy-rich
-  :after ivy
   :init (all-the-icons-ivy-rich-mode 1))
 (use-package ivy-rich
   :init (ivy-rich-mode 1))
-(use-package lsp-ivy
-  :after ivy)
+(use-package lsp-ivy)
 
 (use-package lsp-treemacs
   :config
   (lsp-treemacs-sync-mode 1))
-;; (use-package lsp-mode)
+(use-package lsp-mode
+  :hook ((c-mode . lsp)
+         (c++-mdoe . lsp)))
 (use-package powerthesaurus
   :bind
-  (("C-x t s" . powerthesaurus-lookup-word-dwim)))
+  (("C-x C-." . powerthesaurus-lookup-word-dwim)))
 
 
 (use-package grammarly
@@ -648,8 +693,7 @@ Position the cursor at it's beginning, according to the current mode."
 ;; (setcdr (nth 1 auth) grammarly--cookies)
 ;; Set callback for receiving data.
 ;; (grammarly-check-text "Hello World")
-(use-package flycheck-grammarly
-  :after grammarly)
+(use-package flycheck-grammarly)
 ;; :hook
 ;; ((LaTeX-mode . flyspell-grammarly)))
 (use-package lsp-latex
@@ -667,22 +711,16 @@ Position the cursor at it's beginning, according to the current mode."
    (LaTeX-mode . lsp)
    (bibtex-mode . lsp))
   )
-(use-package flyspell-correct-ivy
-  :after (:all flyspell ivy))
+(use-package flyspell-correct-ivy)
 (use-package counsel
-  :after ivy
-  :init
-  (counsel-mode 1))
+  :config (counsel-mode 1))
 (use-package ivy-posframe
-  :after ivy
-  :init
-  (setq ivy-posframe-display-functions-alist '((t . ivy-posframe-display)))
-  (ivy-posframe-mode 1))
-
+  :custom (ivy-posframe-display-functions-alist '((t . ivy-posframe-display)))
+  :init (ivy-posframe-mode 1))
 (use-package ivy-prescient
-  :after ivy
-  :init
-  (ivy-prescient-mode))
+  :config (ivy-prescient-mode))
+(use-package counsel-projectile
+  :config (counsel-projectile-mode 1))
 ;; (use-package counsel-gtags
 ;;   :bind-keymap ("C-c g" . counsel-gtags-command-map)
 ;;   :config
@@ -695,18 +733,14 @@ Position the cursor at it's beginning, according to the current mode."
 ;;   (define-key counsel-gtags-mode-map (kbd "M-,") 'counsel-gtags-go-backward)
 ;;   (define-key counsel-gtags-mode-map (kbd "M-.") 'counsel-gtags-dwim))
 
-(use-package counsel-projectile
-  :config
-  (counsel-projectile-mode 1)
-  )
+
 
 (use-package ede
-  :config
-  (global-ede-mode))
+  :config (global-ede-mode))
 (use-package semantic
   :config
-  ;; (global-semanticdb-minor-mode 1)
-  ;; (global-semantic-idle-scheduler-mode 1)
+  (global-semanticdb-minor-mode 1)
+  (global-semantic-idle-scheduler-mode 1)
   (semantic-mode 1)
   (setq semantic-new-buffer-setup-functions
         (cl-remove-if (lambda (buffer-setup-function)
@@ -741,37 +775,41 @@ Position the cursor at it's beginning, according to the current mode."
          (irony-mode . company-irony-setup-begin-commands)
          (irony-mode . my-irony-mode-hook)
          (semantic-init . semantic-reset-system-include)))
+
 (use-package company
   :bind (:map company-active-map ("<tab>" . company-complete-selection))
   :custom
   (frame-set-background-mode t)
   (x-gtk-use-system-tooltips nil)
   (tooltip-frame-parameters 1)
-  (company-backends (delete 'company-semantic company-backends))
+  ;; (company-backends (delete 'company-semantic company-backends))
   (company-idle-delay 0.2)
   (company-abbrev 'company-dabbrev)
   (company-preview-if-just-one-frontend t)
   :config
   (global-company-mode)
   (add-to-list
-   'company-backends '(company-irony
+   'company-backends '(
+                       company-semantic
                        company-clang
-                       company-rtags
+                       company-lsp
                        company-files
                        company-keywords
                        company-capf
                        company-yasnippet
                        )))
 (use-package company-prescient
-  :after company prescient
   :init (company-prescient-mode))
 (use-package rtags)
 (use-package company-rtags
-  :after company rtags)
+  :config
+  (add-to-list 'company-backends 'company-rtags))
+
 (use-package company-irony
-  :after company irony)
+  :config
+  (add-to-list 'company-backends 'company-irony))
+
 (use-package company-irony-c-headers
-  :after company irony company-irony
   :config
   (add-to-list 'company-backends 'company-irony-c-headers))
 
@@ -792,7 +830,6 @@ Position the cursor at it's beginning, according to the current mode."
 ;;         (mapcar 'company-backend-with-yas company-backends)))
 
 (use-package company-posframe
-  :after company
   :hook (company-mode . company-posframe-mode))
 
 (use-package company-box
@@ -805,7 +842,6 @@ Position the cursor at it's beginning, according to the current mode."
   (company-tooltip-align-annotations t)
   )
 (use-package company-quickhelp
-  :after company
   :defines company-quickhelp-delay
   :bind (:map company-active-map
               ("M-h" . company-quickhelp-manual-begin))
@@ -814,6 +850,7 @@ Position the cursor at it's beginning, according to the current mode."
   :config
   (company-quickhelp-mode)
   )
+
 ;; Folding code
 (use-package hideshow
   :init
@@ -839,9 +876,10 @@ Position the cursor at it's beginning, according to the current mode."
 
   )
 (use-package aggressive-indent
+  :defines (aggressive-indent-excluded-modes)
   :init
   (global-aggressive-indent-mode 1)
-  (add-to-list 'aggressive-indent-excluded-modes 'html-mode)
+  (add-to-list 'aggressive-indent-excluded-modes '(html-mode dockerfile-mode))
   )
 
 (defun my-org-mode-hook ()
@@ -912,21 +950,13 @@ Position the cursor at it's beginning, according to the current mode."
   )
 
 (use-package company-bibtex
-  :after company tex
-  :init
-  (add-to-list 'company-backends '(company-bibtex))
-  )
+  :config (add-to-list 'company-backends '(company-bibtex)))
 
 (use-package company-reftex
-  :after company tex
-  :init
-  (add-to-list 'company-backends '(company-reftex-labels company-reftex-citations))
-  )
+  :config (add-to-list 'company-backends '(company-reftex-labels company-reftex-citations)))
 
-;; (use-package company-auctex
-;;   :after company tex
-;;   :config
-;;   (add-to-list 'company-backends 'company-auctex))
+(use-package company-auctex
+  :config  (add-to-list 'company-backends 'company-auctex))
 
 (use-package pdf-tools
   :custom
@@ -934,14 +964,14 @@ Position the cursor at it's beginning, according to the current mode."
   (pdf-annot-activate-created-annotations t)
   (pdf-view-resize-factor 1.1)
   :magic ("%PDF" . pdf-view-mode)
-  :config
-  (pdf-tools-install :no-query)
+  :config (pdf-tools-install :no-query)
   )
+;; terminal
+(use-package vterm
+  :config (define-key global-map (kbd "<f2>") 'vterm ))
 
-
-(use-package sublimity
-  :init
-  (sublimity-mode 1))
+;; (use-package sublimity
+;;   :config  (sublimity-mode 1))
 
 ;; (setq  helm-display-function 'helm-display-buffer-in-own-frame
 ;;        ;; helm-display-function 'my-helm-display-child-frame
@@ -954,18 +984,15 @@ Position the cursor at it's beginning, according to the current mode."
   (load-file "~/.emacs")
   )
 (defun open-config-file ()
-  "Open this file"
+  "Open this file."
   (interactive)
   (find-file "~/.emacs")
   (org-mode)
 
   )
-(define-key global-map (kbd "<f9>") 'reload-configs)
-(define-key global-map (kbd "<f5>") 'redraw-display)
-
 ;; define function to shutdown emacs server instance
 (defun server-shutdown ()
-  "Save buffers, Quit, and Shutdown (kill) server"
+  "Save buffers, Quit, and Shutdown (kill) server."
   (interactive)
   (save-some-buffers)
   (kill-emacs)
@@ -979,36 +1006,143 @@ Position the cursor at it's beginning, according to the current mode."
   (("M-o". 'ace-window))
   )
 (use-package avy
-  :bind
-  (("C-j". 'avy-goto-word-1))
-  (("M-g g". 'avy-goto-line))
+  :config
+  (defhydra hydra-avy (:exit t :hint nil)
+    "
+ Line^^       Region^^        Goto
+----------------------------------------------------------
+ [_y_] yank   [_Y_] yank      [_c_] timed char  [_C_] char
+ [_m_] move   [_M_] move      [_w_] word        [_W_] any word
+ [_k_] kill   [_K_] kill      [_l_] line        [_L_] end of line"
+    ("c" avy-goto-char-timer)
+    ("C" avy-goto-char)
+    ("w" avy-goto-word-1)
+    ("W" avy-goto-word-0)
+    ("l" avy-goto-line)
+    ("L" avy-goto-end-of-line)
+    ("m" avy-move-line)
+    ("M" avy-move-region)
+    ("k" avy-kill-whole-line)
+    ("K" avy-kill-region)
+    ("y" avy-copy-line)
+    ("Y" avy-copy-region))
+  (global-set-key (kbd "C-j") 'hydra-avy/body)
+  ;; :bind
+  ;; (("C-j". 'avy-goto-word-1))
+  ;; (("M-g g". 'avy-goto-line))
   )
 
-(use-package auto-complete
-  :init
-  (use-package popup))
 (use-package ein
-  :init
-  (setq ein:use-auto-complete-superpack t)
-  :bind
-  (("C-<return>". 'ein:worksheet-execute-cell-km))
+  :custom (ein:use-auto-complete-superpack t)
+  :bind (("C-<return>". 'ein:worksheet-execute-cell-km))
   )
-
+(use-package docker-compose-mode)
+(use-package dockerfile-mode)
 ;; Save sessions
 ;; (setq desktop-save-mode t)
 ;; ;;
+;; Independent key bindings
+(global-set-key (kbd "C-x k") 'kill-current-buffer)
+(global-set-key (kbd "C-x C-k") 'kill-buffer-and-window)
+(global-set-key (kbd "C-x C-r") 'eval-region)
+(global-set-key (kbd "M-<up>") 'beginning-of-defun)
+(global-set-key (kbd "M-p") 'beginning-of-defun)
+(global-set-key (kbd "M-<down>") 'end-of-defun)
+(global-set-key (kbd "M-n") 'end-of-defun)
+
 ;; Mouse scrolling in terminal
 (global-set-key (kbd "<mouse-4>") 'scroll-down-line)
 (global-set-key (kbd "<mouse-5>") 'scroll-up-line)
+(define-key global-map (kbd "<f9>") 'reload-configs)
+(define-key global-map (kbd "<f5>") 'redraw-display)
 
-;; Mouse clicks
-(xterm-mouse-mode +1)
-;; terminal
+(global-set-key
+ (kbd "C-x SPC")
+ (defhydra hydra-rectangle (:body-pre (rectangle-mark-mode 1)
+                                      :color pink
+                                      :post (deactivate-mark))
+   "
+  ^_k_^     _d_elete    _s_tring
+_h_   _l_   _o_k        _y_ank
+  ^_j_^     _n_ew-copy  _r_eset
+^^^^        _e_xchange  _u_ndo
+^^^^        ^ ^         _p_aste
+"
+   ("h" backward-char nil)
+   ("l" forward-char nil)
+   ("k" previous-line nil)
+   ("j" next-line nil)
+   ("e" exchange-point-and-mark nil)
+   ("n" copy-rectangle-as-kill nil)
+   ("d" delete-rectangle nil)
+   ("r" (if (region-active-p)
+            (deactivate-mark)
+          (rectangle-mark-mode 1)) nil)
+   ("y" yank-rectangle nil)
+   ("u" undo nil)
+   ("s" string-rectangle nil)
+   ("p" kill-rectangle nil)
+   ("o" nil nil)))
 
-(use-package vterm
-  :init
-  (define-key global-map (kbd "<f2>") 'vterm )
+(define-key dired-mode-map
+  "."
+  (defhydra hydra-dired (:hint nil :color pink)
+    "
+_+_ mkdir          _v_iew           _m_ark             _(_ details        _i_nsert-subdir    wdired
+_C_opy             _O_ view other   _U_nmark all       _)_ omit-mode      _$_ hide-subdir    C-x C-q : edit
+_D_elete           _o_pen other     _u_nmark           _l_ redisplay      _w_ kill-subdir    C-c C-c : commit
+_R_ename           _M_ chmod        _t_oggle           _g_ revert buf     _e_ ediff          C-c ESC : abort
+_Y_ rel symlink    _G_ chgrp        _E_xtension mark   _s_ort             _=_ pdiff
+_S_ymlink          ^ ^              _F_ind marked      _._ toggle hydra   \\ flyspell
+_r_sync            ^ ^              ^ ^                ^ ^                _?_ summary
+_z_ compress-file  _A_ find regexp
+_Z_ compress       _Q_ repl regexp
+
+T - tag prefix
+"
+    ("\\" dired-do-ispell)
+    ("(" dired-hide-details-mode)
+    (")" dired-omit-mode)
+    ("+" dired-create-directory)
+    ("=" diredp-ediff)         ;; smart diff
+    ("?" dired-summary)
+    ("$" diredp-hide-subdir-nomove)
+    ("A" dired-do-find-regexp)
+    ("C" dired-do-copy)        ;; Copy all marked files
+    ("D" dired-do-delete)
+    ("E" dired-mark-extension)
+    ("e" dired-ediff-files)
+    ("F" dired-do-find-marked-files)
+    ("G" dired-do-chgrp)
+    ("g" revert-buffer)        ;; read all directories again (refresh)
+    ("i" dired-maybe-insert-subdir)
+    ("l" dired-do-redisplay)   ;; relist the marked or singel directory
+    ("M" dired-do-chmod)
+    ("m" dired-mark)
+    ("O" dired-display-file)
+    ("o" dired-find-file-other-window)
+    ("Q" dired-do-find-regexp-and-replace)
+    ("R" dired-do-rename)
+    ("r" dired-do-rsynch)
+    ("S" dired-do-symlink)
+    ("s" dired-sort-toggle-or-edit)
+    ("t" dired-toggle-marks)
+    ("U" dired-unmark-all-marks)
+    ("u" dired-unmark)
+    ("v" dired-view-file)      ;; q to exit, s to search, = gets line #
+    ("w" dired-kill-subdir)
+    ("Y" dired-do-relsymlink)
+    ("z" diredp-compress-this-file)
+    ("Z" dired-do-compress)
+    ("q" nil)
+    ("." nil :color blue))
   )
+
+
+
+(scroll-bar-mode -1)
+(xterm-mouse-mode +1) ;; Mouse clicks
+
 (global-auto-revert-mode t)
 ;;(add-hook 'emacs-startup-hook 'desktop-read)
 
@@ -1023,7 +1157,7 @@ Position the cursor at it's beginning, according to the current mode."
  '(ansi-color-names-vector
    (vector "#ffffff" "#f36c60" "#8bc34a" "#fff59d" "#4dd0e1" "#b39ddb" "#81d4fa" "#263238"))
  '(custom-safe-themes
-   '("bbb3b96ad231e1760482aa502801d85d0e6c5dc3ac0a30f9c1820a2a6d1c9983" "270026e67ff525d0c7a60de846baad0c0a3562377849bc46d04c3c82860d6c06" "008f374a54ce67b5445d4a66c24fe28bf686f4f4b9c54a263e9bfaad689552f5" "fedb49ee135e71333adab7253a0c586c0d920881deeff597771935a9d05bb620" "33a4e6dfc22b219c6cc090a6d4602f67062179ea5d21f23adeb549c79d68a7ec" "f83c15d8de78fbba9443b57fdcb534d9cc9f8b77fe13907fd2bddaa7e59ff045" "2881463727c65d61d245e2def8a06b0a19bc3e1facfe212ad4b38a7b405e0663" "4d6405ba2a5440a79cabdc62e67c1d217ce1c44e0504e136eb74af5932c02946" "39a9223b1fdd1c57bbeb610dcdc90d76c1b28f2ddf135e75167360934604311b" "8e80ec02a6e53d47b60961747a35da19b13561f7b9bdba18ae8875cd49c3e880" "d34793246a37dd8ab1e5d43c36182ce3d8426fa6db6d460a8c96f0acb1a66147" "1d6568b56f7ed674dc91ccc7b7bb5dce25486abe179c081e768ed9582dff536a" "f2429ef5091ea6924e1d8356482b5aebd57ce6210d2646af460729c32937d4f2" "90a142485a05accaf1672337c4c83e8f53688df6cca378effa6458040bac4c94" "dbaaeb0ff70c059c54a242c2a73a2cc9066be2b33b63b5cb52a17a3348b61f12" "e51b93cc5601d46a30925693ba332a2eec573bfefd9983aa9a02f3d6deff3221" "d5b79717880118720f8e8c53e8ef39756f0d5f4f5700238464ccdef7d1f9008e" "3f88014c7e6f66efd1e11e1e747ea792276a2eda227f9ed0dcd7c2925c979494" "99280e03896e625260ff33ff70a6a34375b08d87ebff4c170075bfd768665cd6" "9c6357c81303a41d805b2dfbe880221d4f7acd9934c357a59a5df3f89226c21a" "6677d0a333f87a6ed8d50916329b82e4187893fa25c704e0ed0b743d00bf17a7" "5548e52de2bfe337fc1e8625ba6446373d4497ae3f1f8d7bd8858961e999a4b5" "3df18982a8c6c17afc4617a43d2ec3a09a39d91ce66da5fa2f2324a5d9eeaf2a" "db4b48dc4e8ce04b731b43e0bad9d8225d757feda403134486b632edf79b5ec7" "457f6a570500cfefb5e08001eed85b14b090ae9e5b001bf4fe9d61414d725691" "557a1f11fbe7df49965f04a17fd7888a384c84bbf7e6c89b316edf6c891ea3ad" "58b649bbee867c598d31a9de6b12ad66143105ff0b82de63d13e61df4fc0d363" "6ec1023848b5e8e5e9db4cb084a9e7bffcd2e35b574d50b33990888603237fed" "3866ddc59702ab5bc29d4fba04c022ac843af3ab4956d50bb6ecc774f35e54e8" "e8abde0312f496ac275e668050b340265da1ec3ac79c058e56021d032880d8f0" "b59529dc52932ce8d0098312cba67f48c5a4464996589629b41e5fd6b1fa0554" "f47c0e014460b6279407fa863d0325bc0a072aee6253530228e1b2dc0bb62b34" "2a07758a4786cf0dd99442e60e65272ac593b8043392c9f4ff140981a9788d23" "7db71058250e3ccc40549d897cf54b976266299ed782e69234a418f7c05c3366" "dffda2b63f7960ad54f9fd4369e0cb102be25c2f0038badad5cf3fa7328d5231" "fbcd4bac007f765d200a1d0e65ebc98e5192ef7b6e42c4fc16740e1bcb5352fc" "7091672c21df2675f9c0e3c4774526947653a480fd842c93e8cbef8a6e343b10" "448b484b956e2f11a6028b34aa188a33dd52f3351436b76e48acbb1c153d8bef" "84520f3c7f8ab65188e333ac180c3d10ff9dfe70229453952f51227e83d88ee5" "0598d84ffd31cc0bb40cdb1e5ee76304e8f025dfc498df1d96b191ea3f33c7bc" "2a0f701a583921a5d9a3e00b3fca25c7426913f12b1eb9203f3134d3d47e693c" "9f4ac26108e9da0c9ad7c1adcc5bdb1acef6ea369d6578567ca937cbb3145d3b" default))
+   '("79278310dd6cacf2d2f491063c4ab8b129fee2a498e4c25912ddaa6c3c5b621e" default))
  '(default-input-method "rfc1345")
  '(fci-rule-color "#212121")
  '(hl-sexp-background-color "#121212")
@@ -1043,10 +1177,14 @@ Position the cursor at it's beginning, according to the current mode."
      ("FIXME" . "#dc752f")
      ("XXX+" . "#dc752f")
      ("\\?\\?\\?+" . "#dc752f")))
- '(package-selected-packages
-   '(magit counsel-etags pdf-tools auctex semantics company-irony elpy ace-window avy ace-jump-mode jedi auto-complete jupyter vterm cmake-mode helm-ag zone-nyan nyan-mode org-beautify-theme company-c-headers redo+ centaur-tabs selectrum helm-smex smex function-args aggressive-indent immaterial-theme atom-dark-theme badger-theme gruvbox-theme nimbus-theme docker-compose-mode dashboard vimish-fold dimmer neotree zoom spacemacs-theme smart-mode-line-atom-one-dark-theme atom-one-dark-theme material-theme flycheck dracula-theme zygospore yasnippet ws-butler volatile-highlights use-package undo-tree iedit dtrt-indent counsel-projectile company clean-aindent-mode anzu))
+ '(jdee-db-active-breakpoint-face-colors (cons "#1c1f24" "#51afef"))
+ '(jdee-db-requested-breakpoint-face-colors (cons "#1c1f24" "#7bc275"))
+ '(jdee-db-spec-breakpoint-face-colors (cons "#1c1f24" "#484854"))
+ '(objed-cursor-color "#ff665c")
  '(pdf-view-continuous t)
  '(pdf-view-midnight-colors '("#b2b2b2" . "#262626"))
+ '(rustic-ansi-faces
+   ["#242730" "#ff665c" "#7bc275" "#FCCE7B" "#51afef" "#C57BDB" "#5cEfFF" "#bbc2cf"])
  '(tetris-x-colors
    [[229 192 123]
     [97 175 239]
@@ -1081,6 +1219,9 @@ Position the cursor at it's beginning, according to the current mode."
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(default ((t (:background "#2a2e38"))))
+ '(centaur-tabs-selected ((t (:background "#2a2e38"))))
+ '(centaur-tabs-unselected ((t (:background "#242730"))))
  )
 (provide 'emacs)
 ;;; emacs ends here
