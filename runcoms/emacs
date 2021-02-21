@@ -2,27 +2,31 @@
 3;;; Commentary:
 ;;; Code:
 ;; Bug fix for newer Emacs
-(defmacro define-obsolete-function-alias ( obsolete-name current-name
-                                           &optional when docstring)
-  "Set OBSOLETE-NAME's function definition to CURRENT-NAME and mark it obsolete.
-\(define-obsolete-function-alias \\='old-fun \\='new-fun \"22.1\" \"old-fun's doc.\")
-is equivalent to the following two lines of code:
-\(defalias \\='old-fun \\='new-fun \"old-fun's doc.\")
-\(make-obsolete \\='old-fun \\='new-fun \"22.1\")
-WHEN should be a string indicating when the function was first
-made obsolete, for example a date or a release number.
-See the docstrings of `defalias' and `make-obsolete' for more details."
-  (declare (doc-string 4)
-           (advertised-calling-convention
-            ;; New code should always provide the `when' argument
-            (obsolete-name current-name when &optional docstring) "23.1"))
-  `(progn
-     (defalias ,obsolete-name ,current-name ,docstring)
-     (make-obsolete ,obsolete-name ,current-name ,when)))
+;; (defmacro define-obsolete-function-alias ( obsolete-name current-name
+;;                                            &optional when docstring)
+;;   "Set OBSOLETE-NAME's function definition to CURRENT-NAME and mark it obsolete.
+;; \(define-obsolete-function-alias \\='old-fun \\='new-fun \"22.1\" \"old-fun's doc.\")
+;; is equivalent to the following two lines of code:
+;; \(defalias \\='old-fun \\='new-fun \"old-fun's doc.\")
+;; \(make-obsolete \\='old-fun \\='new-fun \"22.1\")
+;; WHEN should be a string indicating when the function was first
+;; made obsolete, for example a date or a release number.
+;; See the docstrings of `defalias' and `make-obsolete' for more details."
+;;   (declare (doc-string 4)
+;;            (advertised-calling-convention
+;;             ;; New code should always provide the `when' argument
+;;             (obsolete-name current-name when &optional docstring) "23.1"))
+;;   `(progn
+;;      (defalias ,obsolete-name ,current-name ,docstring)
+;;      (make-obsolete ,obsolete-name ,current-name ,when)))
 
 ;; ;; Straight:
 (defvar straight-use-package-by-default)
 (setq straight-use-package-by-default t)
+(defvar straight-always-use-package-ensure)
+(setq  straight-always-use-package-ensure t)
+(setq comp-deferred-compilation-deny-list '("\\(?:[^z-a]*-autoloads\\.el$\\)"))
+
 (defvar bootstrap-version)
 (let ((bootstrap-file
        (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
@@ -34,7 +38,16 @@ See the docstrings of `defalias' and `make-obsolete' for more details."
          'silent 'inhibit-cookies)
       (goto-char (point-max))
       (eval-print-last-sexp)))
-  (load bootstrap-file nil 'nomessage))
+  ;; catch emacs updates that have native compiled leftovers
+  (unless (catch 'emacs-version-changed
+            (load bootstrap-file nil 'nomessage))
+    (when (boundp 'comp-eln-load-path)
+      ;; remove leftovers, with confirmation just to be safe
+      (when (yes-or-no-p (format "Delete '%s'?" (car comp-eln-load-path)))
+        (delete-directory (expand-file-name (car comp-eln-load-path)) t))
+      ;; and try again
+      (load bootstrap-file nil 'nomessage))))
+
 (straight-use-package 'use-package)
 
 (use-package hydra)
@@ -133,6 +146,7 @@ See the docstrings of `defalias' and `make-obsolete' for more details."
   (setq dimmer-adjustment-mode :foreground)
   (setq dimmer-use-colorspace :ceilab)
   )
+
 (use-package lsp-ui
   :custom
   (lsp-ui-sideline-show-hover t)
@@ -155,7 +169,7 @@ See the docstrings of `defalias' and `make-obsolete' for more details."
   (nyan-start-animation)
   )
 ;; (setq zone-timer (run-with-idle-timer  t 'zone))
-(use-package solaire-mode               ;
+(use-package solaire-mode
   :defines (solaire-mode-auto-swap-bg)
   ;; Ensure solaire-mode is running in all solaire-mode buffers
   :hook (change-major-mode . turn-on-solaire-mode)
@@ -175,7 +189,7 @@ See the docstrings of `defalias' and `make-obsolete' for more details."
   (setq solaire-mode-auto-swap-bg t)
   (solaire-global-mode +1)
   )
-
+;; (use-package cc-mode)
 (use-package iedit
   :bind (("C-;" . iedit-mode))
   :init
@@ -197,28 +211,27 @@ See the docstrings of `defalias' and `make-obsolete' for more details."
   (prog-mode . rainbow-delimiters-mode))
 (use-package yascroll
   :config (global-yascroll-bar-mode))
-(use-package all-the-icons
-  :config
-  (all-the-icons-install-fonts))
+(use-package all-the-icons)
 (use-package doom-themes
   :custom-face
   (default ((t (:background "#2a2e38"))))
-  (centaur-tabs-unselected ((t (:background "#242730"))))
-  (centaur-tabs-selected ((t (:background "#2a2e38"))))
   (hl-line ((t (:background "#383f58"))))
   :custom
-  ;; (doom-vibrant-brighter-comments t)
+  (doom-vibrant-brighter-comments t)
   (doom-vibrant-brighter-modeline t)
+
   :config
+  ;; (setq doom-vibrant-brighter-comments t)
   (load-theme 'doom-vibrant t)
   (global-hl-line-mode)
   (doom-themes-org-config)
   (doom-themes-treemacs-config)
   )
 (use-package centaur-tabs
-  :bind
-  ("<mouse-8>" . centaur-tabs-backward)
-  ("<mouse-9>" . centaur-tabs-forward)
+  :demand
+  :custom-face
+  (centaur-tabs-unselected ((t (:background "#242730"))))
+  (centaur-tabs-selected ((t (:background "#2a2e38"))))
   :custom
   (centaur-tabs-set-modified-marker t)
   (centaur-tabs-style "box")
@@ -233,10 +246,12 @@ See the docstrings of `defalias' and `make-obsolete' for more details."
   (global-set-key (kbd "C-x t") 'centaur-tab/body)
   ;; (global-set-key (kbd "C-x <left>")  'centaur-tabs-backward)
   ;; (global-set-key (kbd "C-x <right>") 'centaur-tabs-forward)
-  (centaur-tabs-mode t)
   (centaur-tabs-headline-match)
   (centaur-tabs-group-by-projectile-project)
-
+  (centaur-tabs-mode)
+  :bind
+  ("<mouse-8>" . centaur-tabs-backward)
+  ("<mouse-9>" . centaur-tabs-forward)
   )
 (use-package doom-modeline
   :config
@@ -354,8 +369,8 @@ See the docstrings of `defalias' and `make-obsolete' for more details."
   :init
   (flycheck-pos-tip-mode))
 (use-package flycheck-irony
-  :init
-  (add-hook 'flycheck-mode-hook #'flycheck-irony-setup))
+  :hook
+  (flycheck-mode-hook . flycheck-irony-setup))
 (use-package flycheck-checkbashisms
   :init
   :hook
@@ -472,9 +487,8 @@ See the docstrings of `defalias' and `make-obsolete' for more details."
 (use-package yasnippet-snippets
   :after yasnippet)
 (use-package yasnippet
-  :defer t
-  :hook
-  (prog-mode . yas-minor-mode))
+  :after lsp-mode
+  :config (yas-global-mode))
 (use-package clean-aindent-mode
   :hook
   (prog-mode . clean-aindent-mode))
@@ -711,9 +725,10 @@ Position the cursor at it's beginning, according to the current mode."
 
 (use-package ggtags
   :hook
-  ((c-mode . ggtags-mode)
-   (c++-mode . ggtags-mode))
-  )
+  (
+   (c-mode-common . ggtags-mode)
+   ;; (c++-mode . ggtags-mode))
+   ))
 (use-package prescient
   :config
   (prescient-persist-mode))
@@ -727,18 +742,37 @@ Position the cursor at it's beginning, according to the current mode."
 
   (ivy-mode 1))
 
-(use-package all-the-icons-ivy-rich
-  :init (all-the-icons-ivy-rich-mode 1))
 (use-package ivy-rich
-  :init (ivy-rich-mode 1))
-(use-package lsp-ivy)
-
+  :hook (ivy-mode . ivy-rich-mode)
+  :custom (ivy-rich-path-style 'abbrev)
+  :config
+  (ivy-rich-modify-columns
+   'ivy-switch-buffer
+   '((ivy-rich-switch-buffer-size (:align right))
+     (ivy-rich-switch-buffer-major-mode (:width 20 :face error)))))
+(use-package all-the-icons-ivy-rich
+  :config
+  (all-the-icons-ivy-rich-mode))
+(use-package lsp-ivy :commands lsp-ivy-workspace-symbol)
 (use-package lsp-treemacs
   :config
   (lsp-treemacs-sync-mode 1))
 (use-package lsp-mode
-  :hook ((c-mode . lsp)
-         (c++-mdoe . lsp)))
+  :hook (
+         (lsp-mode . lsp-enable-which-key-integration)
+         (c-mode-common . lsp))
+  :init
+  (setq gc-cons-threshold (* 100 1024 1024)
+        read-process-output-max (* 1024 1024)
+        treemacs-space-between-root-nodes nil
+        company-idle-delay 0.0
+        company-minimum-prefix-length 1
+        lsp-idle-delay 0.1 ;; clangd is fast
+        ;; be more ide-ish
+        lsp-headerline-breadcrumb-enable t)
+  )
+;; (add-hook 'c-mode-common-hook #' lsp))
+
 (use-package powerthesaurus
   :bind
   (("C-x C-." . powerthesaurus-lookup-word-dwim)))
@@ -807,6 +841,8 @@ Position the cursor at it's beginning, according to the current mode."
 (use-package ede
   :config (global-ede-mode))
 (use-package semantic
+  :hook
+  (semantic-init . semantic-reset-system-include)
   :config
   (global-semanticdb-minor-mode 1)
   (global-semantic-idle-scheduler-mode 1)
@@ -816,6 +852,12 @@ Position the cursor at it's beginning, according to the current mode."
                         (member (car buffer-setup-function)
                                 '(python-mode html-mode)))
                       semantic-new-buffer-setup-functions))
+  (semantic-remove-system-include "/usr/include/" 'c++-mode)
+  (semantic-remove-system-include "/usr/local/include/" 'c++-mode)
+  (setq-mode-local c-mode semanticdb-find-default-throttle
+                   '(local project unloaded recursive))[]
+  (setq-mode-local c++-mode semanticdb-find-default-throttle
+                   '(local project unloaded recursive))
   (remove-hook 'python-mode-hook 'wisent-python-default-setup))
 
 
@@ -829,13 +871,6 @@ Position the cursor at it's beginning, according to the current mode."
     (define-key irony-mode-map [remap complete-symbol]
       'irony-completion-at-point-async))
 
-
-  (setq-mode-local c-mode semanticdb-find-default-throttle
-                   '(local project unloaded recursive))
-  (setq-mode-local c++-mode semanticdb-find-default-throttle
-                   '(local project unloaded recursive))
-  (semantic-remove-system-include "/usr/include/" 'c++-mode)
-  (semantic-remove-system-include "/usr/local/include/" 'c++-mode)
   :hook (
          (c++-mode . irony-mode)
          (c-mode .irony-mode)
@@ -843,15 +878,17 @@ Position the cursor at it's beginning, according to the current mode."
          (irony-mode . irony-cdb-autosetup-compile-options)
          (irony-mode . company-irony-setup-begin-commands)
          (irony-mode . my-irony-mode-hook)
-         (semantic-init . semantic-reset-system-include)))
+         ;; (semantic-init . semantic-reset-system-include)
+         ))
 
+(use-package json-mode)
 (use-package company
   :bind (:map company-active-map ("<tab>" . company-complete-selection))
   :custom
   (frame-set-background-mode t)
   (x-gtk-use-system-tooltips nil)
   (tooltip-frame-parameters 1)
-  ;; (company-backends (delete 'company-semantic company-backends))
+  (company-backends (delete 'company-semantic company-backends))
   (company-idle-delay 0.2)
   (company-abbrev 'company-dabbrev)
   (company-preview-if-just-one-frontend t)
@@ -859,23 +896,22 @@ Position the cursor at it's beginning, according to the current mode."
   (global-company-mode)
   (add-to-list
    'company-backends '(
-                       company-semantic
+                       ;; company-semantic
                        company-clang
                        company-files
                        company-keywords
                        company-capf
                        company-yasnippet
                        )))
-(use-package company-lsp
-  :config
-  (add-to-list 'company-backends 'company-lsp))
+;; (use-package company-lsp
+;;   :config
+;;   (add-to-list 'company-backends 'company-lsp))
 (use-package company-prescient
   :init (company-prescient-mode))
-(use-package rtags)
-(use-package company-rtags
-  :config
-  (add-to-list 'company-backends 'company-rtags))
-
+;; (use-package rtags)
+;; (use-package company-rtags
+;;   :config
+;;   (add-to-list 'company-backends 'company-rtags))
 (use-package company-irony
   :config
   (add-to-list 'company-backends 'company-irony))
@@ -946,12 +982,13 @@ Position the cursor at it's beginning, according to the current mode."
   (add-hook 'emacs-lisp-mode-hook 'hs-minor-mode)
 
   )
-(use-package aggressive-indent
-  :defines (aggressive-indent-excluded-modes)
-  :init
-  (global-aggressive-indent-mode 1)
-  (add-to-list 'aggressive-indent-excluded-modes '(html-mode dockerfile-mode lsp-mode))
-  )
+;; (use-package aggressive-indent
+;;   :defines (aggressive-indent-excluded-modes)
+;;   :hook (prog-mode . aggressive-indent-mode)
+;;   :init
+;;   ;; (global-aggressive-indent-mode 1)
+;;   (add-to-list 'aggressive-indent-excluded-modes '(html-mode dockerfile-mode lsp-mode))
+;;   )
 (use-package org-bullets)
 (defun my-org-mode-hook ()
   "My org mode hook."
@@ -971,7 +1008,7 @@ Position the cursor at it's beginning, according to the current mode."
 
 (use-package tex
   :straight auctex
-  ;; :mode ("\\.tex\\'" . LaTeX-mode)
+  :mode ("\\.tex\\'" . LaTeX-mode)
   :hook (
          (LaTeX-mode . visual-line-mode)
          (LaTeX-mode . flyspell-mode)
@@ -1028,7 +1065,8 @@ Position the cursor at it's beginning, according to the current mode."
   :config (add-to-list 'company-backends '(company-reftex-labels company-reftex-citations)))
 
 (use-package company-auctex
-  :config (add-to-list 'company-backends 'company-auctex))
+  :config
+  (company-auctex-init))
 
 (use-package pdf-tools
   :custom
